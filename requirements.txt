@@ -99,6 +99,7 @@ numpy==1.23.5
 nvidia-cublas-cu11==11.10.3.66
 nvidia-cuda-nvrtc-cu11==11.7.99
 nvidia-cuda-runtime-cu11==11.7.99
+nvidia-cudnn==8.2.0.51
 nvidia-cudnn-cu11==8.6.0.163
 nvidia-pyindex==1.0.9
 oauthlib==3.2.2
