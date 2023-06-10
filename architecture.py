@@ -1,6 +1,8 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
 
+# import keras_nlp
+
 class Encoder(tf.keras.Model):
   def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz):
     super(Encoder, self).__init__()
@@ -48,6 +50,8 @@ class Decoder(tf.keras.Model):
 
     # Sampler
     self.sampler = tfa.seq2seq.sampler.TrainingSampler()
+    # self.sampler = keras_nlp.samplers.Sampler()
+
 
     # Create attention mechanism with memory = None
     self.attention_mechanism = self.build_attention_mechanism(self.dec_units, 

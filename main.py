@@ -27,17 +27,17 @@ steps_per_epoch = num_examples//BATCH_SIZE
 print(max_length_input)
 print(train_dataset)
 
-# Test encoder
+# Test encodergit config pull.rebase false
 encoder = Encoder(vocab_inp_size, embedding_dim, units, BATCH_SIZE)
 
-# sample input
+# # sample inputgit config pull.rebase false
 sample_hidden = encoder.initialize_hidden_state()
 sample_output, sample_h, sample_c = encoder(example_input_batch, sample_hidden)
 print ('Encoder output shape: (batch size, sequence length, units) {}'.format(sample_output.shape))
 print ('Encoder h vecotr shape: (batch size, units) {}'.format(sample_h.shape))
 print ('Encoder c vector shape: (batch size, units) {}'.format(sample_c.shape))
 
-# Test decoder stack
+# # Test decoder stack
 
 decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_input, max_length_output, 'luong')
 sample_x = tf.random.uniform((BATCH_SIZE, max_length_output))
