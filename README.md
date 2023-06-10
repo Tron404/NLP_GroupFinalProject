@@ -5,7 +5,7 @@ Use `requirements.txt` to get all of the necessary libraries to run the model. Y
 There is also the option of using an anaconda virtual environment. For this, you have to use `conda` commands with the file `requirements_conda.yml` as follows:
 
 ```bash
-conda env create -f environment.yml
+conda env create -f requirements_conda.yml
 ```
 
 and to activate the new environment:
