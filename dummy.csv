@@ -1,0 +1,5 @@
+"return the maximum between 2 numbers in a function", "def maximum(a,b): return a if a > b else b"
+"return the minimum between 2 numbers in a function", "def minimum(a,b): return a if a < b else b"
+"calculate the sum of a given list fo numbers", "def sum(l): s = 0 \n\t for num in l: \n\t s += num \n\t return s"
+"determine if a number is even or not", "def isEven(a): return a % 2"
+"determine if a number is divisible by 3", "def isDivisible3(a) return a % 3"
