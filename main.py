@@ -31,6 +31,6 @@ decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_i
 
 lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_creator, BATCH_SIZE)
 
-lstm_model.train(train_dataset, val_dataset, 15, steps_per_epoch, patience=2)
+lstm_model.train(train_dataset, val_dataset, 10, steps_per_epoch, patience=2)
 
-lstm_model.translate(inp_lang, targ_lang, u"La revedere!")
+lstm_model.translate(inp_lang, targ_lang, u"Buna!")
