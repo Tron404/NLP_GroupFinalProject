@@ -44,7 +44,7 @@ class NMTDataset:
         lines = io.open(path, encoding='UTF-8').read().strip().split('\n')
         # lines = lines.iloc[0,1]
         word_pairs = [[self.preprocess_sentence(w) for w in l.split('\t')]  for l in lines[:num_examples]]
-
+        """@TODO - look into why we cannot change the size of the data - smth to do with how the data is processed"""
         return zip(*word_pairs)
 
     # Step 3 and Step 4
@@ -74,9 +74,9 @@ class NMTDataset:
 
         return input_tensor, target_tensor, inp_lang_tokenizer, targ_lang_tokenizer
 
-    def call(self, num_examples, BUFFER_SIZE, BATCH_SIZE):
-        file_path = "ron.txt"
+    def call(self, num_examples, file_path, BUFFER_SIZE, BATCH_SIZE):
         input_tensor, target_tensor, self.inp_lang_tokenizer, self.targ_lang_tokenizer = self.load_dataset(file_path, num_examples)
+
 
         input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = train_test_split(input_tensor, target_tensor, test_size=0.2)
 
