@@ -79,10 +79,6 @@ def process_data(data_file, preprocessed_file, preprocessed_folder):
     save_preprocessed_data(data, preprocessed_file, preprocessed_folder)
     return data
 
-
-# Call process_data function in your main.py file like this:
-# data = process_data(data_file, preprocessed_file, preprocessed_folder)
-
 def split_data(data):
     """Splits data into training and test sets"""
     x_train, x_test, y_train, y_test = train_test_split(data['Problem'], data['Python Code'], test_size=0.2, random_state=42)
@@ -154,18 +150,24 @@ def encode_and_pad_data(text_line, max_len, tokenizer):
 
 DIM = 50
 
+import os
+import numpy as np
+from gensim.models import KeyedVectors
+from numpy import asarray
+
 def load_embedding(preprocessed_folder, pretrained_w2v_file):
+    """Loads word embeddings from a pretrained Word2Vec model file or downloads it if it doesn't exist"""
     file_path = os.path.join(preprocessed_folder, pretrained_w2v_file)
     if not os.path.exists(file_path):
         print("Downloading model...")
         model = api.load("glove-wiki-gigaword-50")
         model.save_word2vec_format(file_path, binary=False)
-    # else
-    print("Loading w2v model...")
+    else:
+        print("Loading Word2Vec model...")
     file = open(file_path, 'r', encoding='utf8')
     lines = file.readlines()[1:]
     file.close()
-    
+
     # Map words to vectors
     embedding = dict()
     for line in lines:
@@ -175,11 +177,14 @@ def load_embedding(preprocessed_folder, pretrained_w2v_file):
 
     return embedding
 
+
 def build_matrix(embedding, tokenizer, vocab_length):
+    """Builds an embedding matrix for a given tokenizer and vocabulary length using the provided word embeddings"""
+    DIM = len(next(iter(embedding.values())))  # Assuming all vectors have the same dimensionality
     total_count = 0
     na_count = 0
-    
-    matrix = np.zeros((vocab_length + 1, DIM)) # +1 for unknown words
+
+    matrix = np.zeros((vocab_length + 1, DIM))  # +1 for unknown words
     for token, i in tokenizer.word_index.items():
         if token in embedding.keys():
             matrix[i] = embedding.get(token)
@@ -187,7 +192,7 @@ def build_matrix(embedding, tokenizer, vocab_length):
             na_count += 1
         total_count += 1
     print(f'NA/All words: {str(na_count)}/{total_count}')
-    print(f"matrix shape: {matrix.shape}")
+    print(f"Matrix shape: {matrix.shape}")
 
     # Save the matrix
     # with open(os.path.join(preprocessed_folder, pretrained_w2v_file), 'w') as file:
@@ -200,7 +205,6 @@ def main_preprocess(data_file, preprocessed_file, preprocessed_folder):
     """Main function to load and preprocess data"""
     data = load_data(data_file)
     x_train, x_test, y_train, y_test, vocab_len = apply_preprocessing(data)
-
     # save_preprocessed_data(data, preprocessed_file, preprocessed_folder)
 
     tokenizer, max_seq_len = get_tokenizer_and_maxlen(x_train)
@@ -214,5 +218,3 @@ def main_preprocess(data_file, preprocessed_file, preprocessed_folder):
     embedding_matrix = build_matrix(embedding, tokenizer, vocab_len)
 
     return x_train_encoded, x_test_encoded, y_train_encoded, y_test_encoded, embedding_matrix
-
-main_preprocess(data_file, preprocessed_file, preprocessed_folder)
