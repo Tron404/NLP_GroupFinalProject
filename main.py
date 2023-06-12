@@ -1,12 +1,15 @@
 from dataloader import *
 from architecture import *
 from training import *
+from preprocessing_functionality import *
 
 BUFFER_SIZE = 62000
 BATCH_SIZE = 100
 num_examples = 60000
 
 tf.keras.backend.clear_session()
+
+x_train_encoded, x_test_encoded, y_train_encoded, y_test_encoded, embedding_matrix = main_preprocess(data_file, preprocessed_file, preprocessed_folder)
 
 dataset_creator = NMTDataset('en-ron')
 train_dataset, val_dataset, inp_lang, targ_lang = dataset_creator.call(num_examples, "ron.txt", BUFFER_SIZE, BATCH_SIZE)
