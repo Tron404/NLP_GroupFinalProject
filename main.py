@@ -1,6 +1,7 @@
 from dataloader import *
 from architecture import *
 from training import *
+from evaluation_metrics import *
 
 BUFFER_SIZE = 62000
 BATCH_SIZE = 100
@@ -32,4 +33,19 @@ lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_crea
 
 lstm_model.train(train_dataset, val_dataset, 150, steps_per_epoch, patience=5)
 
-lstm_model.translate(inp_lang, targ_lang, u"Buna!")
+# lstm_model.translate(inp_lang, targ_lang, u"Buna!")
+
+problems = [
+    "Hello!",
+    "How are you?",
+    "It had snowed."
+]
+
+test_set = [
+    "Buna!",
+    "Ce mai faci?",
+    "A nins."
+]
+
+evaluator = Evaluator(problems, test_set, lstm_model, inp_lang, targ_lang)
+print(evaluator.bleu_scores())
