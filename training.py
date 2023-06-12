@@ -129,7 +129,7 @@ class LSTM_custom:
             print('Epoch {} Loss {:.4f} Val loss {:.4f}'.format(epoch + 1, loss, loss_val))
             print('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
 
-    def __evaluate_sentence(self, inp_lang, targ_lang, sentence):
+    def evaluate_sentence(self, inp_lang, targ_lang, sentence):
         sentence = self.dataset_creator.preprocess_sentence(sentence)
 
         inputs = [inp_lang.word_index[i] for i in sentence.split(' ')]
@@ -170,7 +170,7 @@ class LSTM_custom:
         return outputs.sample_id.numpy()
     
     def translate(self, inp_lang, targ_lang, sentence):
-        result = self.__evaluate_sentence(inp_lang, targ_lang, sentence)
+        result = self.evaluate_sentence(inp_lang, targ_lang, sentence)
         print(result)
         result = targ_lang.sequences_to_texts(result)
         print('Input: %s' % (sentence))

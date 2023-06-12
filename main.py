@@ -1,16 +1,13 @@
 from dataloader import *
 from architecture import *
 from training import *
-from preprocessing_functionality import *
+from evaluation_metrics import *
 
 BUFFER_SIZE = 62000
 BATCH_SIZE = 100
 num_examples = 60000
 
 tf.keras.backend.clear_session()
-#### getting our actual data set
-x_train_encoded, x_test_encoded, y_train_encoded, y_test_encoded, embedding_matrix = main_preprocess(data_file, preprocessed_file, preprocessed_folder)
-####
 
 dataset_creator = NMTDataset('en-ron')
 train_dataset, val_dataset, inp_lang, targ_lang = dataset_creator.call(num_examples, "ron.txt", BUFFER_SIZE, BATCH_SIZE)
@@ -36,4 +33,19 @@ lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_crea
 
 lstm_model.train(train_dataset, val_dataset, 150, steps_per_epoch, patience=5)
 
-lstm_model.translate(inp_lang, targ_lang, u"Buna!")
+# lstm_model.translate(inp_lang, targ_lang, u"Buna!")
+
+problems = [
+    "Hello!",
+    "How are you?",
+    "It had snowed."
+]
+
+test_set = [
+    "Buna!",
+    "Ce mai faci?",
+    "A nins."
+]
+
+evaluator = Evaluator(problems, test_set, lstm_model, inp_lang, targ_lang)
+print(evaluator.bleu_scores())
