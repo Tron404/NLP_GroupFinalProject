@@ -44,7 +44,6 @@ class NMTDataset:
         lines = io.open(path, encoding='UTF-8').read().strip().split('\n')
         # lines = lines.iloc[0,1]
         word_pairs = [[self.preprocess_sentence(w) for w in l.split('\t')]  for l in lines[:num_examples]]
-        """@TODO - look into why we cannot change the size of the data - smth to do with how the data is processed"""
         return zip(*word_pairs)
 
     # Step 3 and Step 4
