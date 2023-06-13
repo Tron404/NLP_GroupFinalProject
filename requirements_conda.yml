@@ -9,4 +9,10 @@ dependencies:
   - seaborn
   - matplotlib
   - pip
+  - nltk
+  - pip:
+    - wordcloud
+    - tensorflow-addons
+    - tensorflow
+    - code-bert-score
 prefix: /home/keddie/anaconda3/envs/NLP_tfa
