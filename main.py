@@ -1,7 +1,7 @@
 from dataloader import *
 from architecture import *
 from training import *
-from evaluation_metrics import *
+# from evaluation_metrics import *
 
 BUFFER_SIZE = 62000
 BATCH_SIZE = 100
@@ -49,7 +49,7 @@ problem_solutions = [    # Put their python code solutions here (later)
     "I want one!"
 ]
 
-evaluator = Evaluator(problem_solutions, problem_condtions, lstm_model, inp_lang, targ_lang)
-print(evaluator.bleu_scores())
-print(evaluator.meteor_scores())
-print(evaluator.code_bert_scores())
+# evaluator = Evaluator(problem_solutions, problem_condtions, lstm_model, inp_lang, targ_lang)
+# print(evaluator.bleu_scores())
+# print(evaluator.meteor_scores())
+# print(evaluator.code_bert_scores())
