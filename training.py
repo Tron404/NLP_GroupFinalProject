@@ -86,7 +86,8 @@ class LSTM_custom:
             # print(enc_hidden[0].shape, enc_hidden[1].shape)
 
             """@TODO: maybe shuffle data before each batch computation """
-            input_progressBar = tqdm(enumerate(train_dataset.take(steps_per_epoch)))
+            train_batch_data = train_dataset.take(steps_per_epoch)
+            input_progressBar = tqdm(enumerate(train_batch_data))
 
             total_loss = 0
             for batch, (inp, targ) in input_progressBar:
@@ -94,7 +95,7 @@ class LSTM_custom:
 
                 total_loss += batch_loss
 
-                input_progressBar.set_description(f"Epoch: {epoch+1} === Loss: {batch_loss.numpy()} === Batch: {batch+1}/{steps_per_epoch}")
+                input_progressBar.set_description(f"Epoch: {epoch+1} === Loss: {batch_loss.numpy()} === Batch: {batch+1}/{len(train_batch_data)}")
 
             # saving (checkpoint) the model every 2 epochs
             if (epoch + 1) % 2 == 0:
@@ -102,7 +103,8 @@ class LSTM_custom:
 
             val_size = int(steps_per_epoch * 0.25)
             val_dataset = val_dataset.shuffle(val_size, reshuffle_each_iteration=True)
-            val_progressBar = tqdm(enumerate(val_dataset.take(val_size)))
+            val_batch_data = val_dataset.take(val_size)
+            val_progressBar = tqdm(enumerate(val_batch_data))
 
             total_val_loss = 0
             for batch, (val_inp, val_targ) in val_progressBar:
@@ -110,7 +112,7 @@ class LSTM_custom:
 
                 total_val_loss += val_batch_loss
 
-                val_progressBar.set_description(f"Epoch: {epoch+1} === Val loss: {val_batch_loss.numpy()} === Batch: {batch+1}/{val_size}")
+                val_progressBar.set_description(f"Epoch: {epoch+1} === Val loss: {val_batch_loss.numpy()} === Batch: {batch+1}/{len(val_batch_data)}")
 
             loss = total_loss / steps_per_epoch
             loss_val = total_val_loss / val_size

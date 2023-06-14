@@ -82,6 +82,6 @@ class Evaluator:
         with open(idf_dict_path, 'rb') as f:
             idf_dict = pickle.load(f)
 
-        pred_results = code_bert_score.score(cands=predicted_solutions, refs=self.problem_solutions, no_punc=True, lang=lang, idf_dict=idf_dict)
+            pred_results = code_bert_score.score(cands=predicted_solutions, refs=self.problem_solutions, no_punc=True, lang=lang, idf=idf_dict)
 
-        return pred_results  # returns 4 separate tuples for precision, recall, F1, F3 for each prediction-reference_solution pair
+            return pred_results  # returns 4 separate tuples for precision, recall, F1, F3 for each prediction-reference_solution pair
