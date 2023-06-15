@@ -7,10 +7,11 @@ import re
 
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
+from preprocessing_functionality import *
 
 class NMTDataset:
     def __init__(self, problem_type='en-ron'):
-        self.problem_type = 'en-ron'
+        self.problem_type = problem_type
         self.inp_lang_tokenizer = None
         self.targ_lang_tokenizer = None
 
@@ -28,8 +29,10 @@ class NMTDataset:
         # w = re.sub(r"([?.!,¿])", r" \1 ", w)
         w = re.sub(r'[" "]+', " ", w)
 
+        w = " ".join(preprocess_problem_data(w))
+
         # replacing everything with space except (a-z, A-Z, ".", "?", "!", ",")
-        w = re.sub(r"[^a-zA-Z?.!,¿]+", " ", w)
+        # w = re.sub(r"[^a-zA-Z?.!,¿]+", " ", w)
 
         w = w.strip()
 
@@ -41,14 +44,25 @@ class NMTDataset:
     def create_dataset(self, path, num_examples):
         # path : path to spa-eng.txt file
         # num_examples : Limit the total number of training example for faster training (set num_examples = len(lines) to use full data)
-        lines = io.open(path, encoding='UTF-8').read().strip().split('\n')
-        # lines = lines.iloc[0,1]
-        word_pairs = [[self.preprocess_sentence(w) for w in l.split('\t')]  for l in lines[:num_examples]]
+        lines = re.split(r'\n', io.open(path, encoding='UTF-8').read().strip())[1:]
+
+        # for l in lines[:25]:
+        #     print(l)
+        #     print("\n\n\n\n\n\n")
+
+        word_pairs = [[self.preprocess_sentence(w) for w in l.split('|')][1:]  for l in lines[:num_examples]]
+        word_pairs = [w for w in word_pairs if len(w) > 0]
+        print(len(word_pairs))
+        # for w in word_pairs:
+        #     print(w)
+        #     print("------------------")
         return zip(*word_pairs)
 
     # Step 3 and Step 4
     def tokenize(self, lang):
         # lang = list of sentences in a language
+
+        print(lang)
 
         # print(len(lang), "example sentence: {}".format(lang[0]))
         lang_tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='', oov_token='<OOV>')
@@ -66,7 +80,7 @@ class NMTDataset:
 
     def load_dataset(self, path, num_examples=None):
         # creating cleaned input, output pairs
-        targ_lang, inp_lang = self.create_dataset(path, num_examples)
+        inp_lang, targ_lang = self.create_dataset(path, num_examples)
 
         input_tensor, inp_lang_tokenizer = self.tokenize(inp_lang)
         target_tensor, targ_lang_tokenizer = self.tokenize(targ_lang)
@@ -75,7 +89,6 @@ class NMTDataset:
 
     def call(self, num_examples, file_path, BUFFER_SIZE, BATCH_SIZE):
         input_tensor, target_tensor, self.inp_lang_tokenizer, self.targ_lang_tokenizer = self.load_dataset(file_path, num_examples)
-
 
         input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = train_test_split(input_tensor, target_tensor, test_size=0.2)
 

@@ -16,7 +16,11 @@ class LSTM_custom:
         self.dataset_creator = dataset_creator
         self.optimizer = tf.keras.optimizers.Adam()
 
-        self.checkpoint = None
+        self.checkpoint = self.checkpoint = tf.train.Checkpoint(optimizer=self.optimizer,
+                                        encoder=self.encoder,
+                                        decoder=self.decoder)
+        
+        self.history = []
 
     def loss_function(self, real, pred):
         # real shape = (BATCH_SIZE, max_length_output)
@@ -73,9 +77,6 @@ class LSTM_custom:
 
     def train(self, train_dataset, val_dataset, EPOCHS, steps_per_epoch, patience = None):
         checkpoint_prefix = os.path.join('./training_checkpoints', "ckpt")
-        self.checkpoint = tf.train.Checkpoint(optimizer=self.optimizer,
-                                        encoder=self.encoder,
-                                        decoder=self.decoder)
         
         minimum_epoch_loss = np.inf
         patient_round = 0
@@ -117,6 +118,8 @@ class LSTM_custom:
             loss = total_loss / steps_per_epoch
             loss_val = total_val_loss / val_size
 
+            self.history.append([loss, loss_val])
+
             if patience is not None:
                 if loss_val < minimum_epoch_loss:
                     minimum_epoch_loss = loss_val
@@ -130,6 +133,9 @@ class LSTM_custom:
 
             print('Epoch {} Loss {:.4f} Val loss {:.4f}'.format(epoch + 1, loss, loss_val))
             print('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
+
+    def get_training_history(self):
+        return np.asarray(self.history)
 
     def evaluate_sentence(self, inp_lang, targ_lang, sentence):
         sentence = self.dataset_creator.preprocess_sentence(sentence)
@@ -167,6 +173,8 @@ class LSTM_custom:
         ### You only need to get the weights of embedding layer, which can be done by decoder.embedding.variables[0] and pass this callabble to BasicDecoder's call() function
 
         decoder_embedding_matrix = self.decoder.embedding.variables[0]
+
+        print(decoder_embedding_matrix, start_tokens, end_token, decoder_initial_state)
 
         outputs, _, _ = decoder_instance(decoder_embedding_matrix, start_tokens = start_tokens, end_token= end_token, initial_state=decoder_initial_state)
         return outputs.sample_id.numpy()

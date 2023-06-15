@@ -4,23 +4,29 @@ import tensorflow_addons as tfa
 # import keras_nlp
 
 class Encoder(tf.keras.Model):
-  def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz):
+  def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz, num_layers = 1):
     super(Encoder, self).__init__()
     self.batch_sz = batch_sz
     self.enc_units = enc_units
     self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim)
 
     ##-------- LSTM layer in Encoder ------- ##
-    self.lstm_layer = tf.keras.layers.LSTM(self.enc_units,
+    self.lstm_layers = []
+    for idx in range(num_layers):
+      self.lstm_layers.append(tf.keras.layers.LSTM(self.enc_units,
                                    return_sequences=True,
                                    return_state=True,
-                                   recurrent_initializer='glorot_uniform')
-
-
+                                   recurrent_initializer='glorot_uniform',
+                                   name=f"LSTM{idx}"
+                                   )
+                                )
 
   def call(self, x, hidden):
     x = self.embedding(x)
-    output, h, c = self.lstm_layer(x, initial_state = hidden)
+    for lstm_layer in self.lstm_layers:
+      output, h, c = lstm_layer(x, initial_state = hidden)
+      hidden = [h, c]
+      x = output
     return output, h, c
 
   def initialize_hidden_state(self):
@@ -91,3 +97,4 @@ class Decoder(tf.keras.Model):
     x = self.embedding(inputs)
     outputs, _, _ = self.decoder(x, initial_state=initial_state, sequence_length=self.batch_sz*[self.max_length_output-1])
     return outputs
+  
