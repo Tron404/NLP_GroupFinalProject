@@ -46,18 +46,14 @@ class Decoder(tf.keras.Model):
     # Embedding Layer
     self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim)
 
-    #Final Dense layer on which softmax will be applied
-    self.fc = tf.keras.layers.Dense(vocab_size)
-
     # Define the fundamental cell for decoder recurrent structure
     self.decoder_rnn_cell = tf.keras.layers.LSTMCell(self.dec_units)
 
-
+    #Final Dense layer on which softmax will be applied
+    self.fc = tf.keras.layers.Dense(vocab_size)
 
     # Sampler
     self.sampler = tfa.seq2seq.sampler.TrainingSampler()
-    # self.sampler = keras_nlp.samplers.Sampler()
-
 
     # Create attention mechanism with memory = None
     self.attention_mechanism = self.build_attention_mechanism(self.dec_units, 

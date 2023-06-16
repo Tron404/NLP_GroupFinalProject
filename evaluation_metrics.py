@@ -5,9 +5,9 @@ from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from nltk.tokenize import word_tokenize
 
 class Evaluator:
-    def __init__(self, problem_solutions, problem_condition, model, inp_lang, targ_lang):
-        self.problem_solutions = problem_solutions
+    def __init__(self, problem_condition, problem_solutions, model, inp_lang, targ_lang):
         self.problem_conditions = problem_condition
+        self.problem_solutions = problem_solutions
         self.model = model
         self.inp_lang = inp_lang
         self.targ_lang = targ_lang

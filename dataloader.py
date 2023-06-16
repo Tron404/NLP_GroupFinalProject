@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 from preprocessing_functionality import *
 
 class NMTDataset:
-    def __init__(self, problem_type='en-ron'):
+    def __init__(self, problem_type):
         self.problem_type = problem_type
         self.inp_lang_tokenizer = None
         self.targ_lang_tokenizer = None
@@ -26,43 +26,38 @@ class NMTDataset:
         # creating a space between a word and the punctuation following it
         # eg: "he is a boy." => "he is a boy ."
         # Reference:- https://stackoverflow.com/questions/3645931/python-padding-punctuation-with-white-spaces-keeping-punctuation
-        # w = re.sub(r"([?.!,¿])", r" \1 ", w)
+        w = re.sub(r"([?.!,¿])", r" \1 ", w)
         w = re.sub(r'[" "]+', " ", w)
 
-        w = " ".join(preprocess_problem_data(w))
+        # w = " ".join(preprocess_problem_data(w))
 
         # replacing everything with space except (a-z, A-Z, ".", "?", "!", ",")
-        # w = re.sub(r"[^a-zA-Z?.!,¿]+", " ", w)
+        w = re.sub(r"[^a-zA-Z?.!,¿]+", " ", w)
 
         w = w.strip()
 
         # adding a start and an end token to the sentence
         # so that the model know when to start and stop predicting.
+        # w = '<start> ' + w + ' <end>'
         w = '<start> ' + w + ' <end>'
+
         return w
 
     def create_dataset(self, path, num_examples):
         # path : path to spa-eng.txt file
         # num_examples : Limit the total number of training example for faster training (set num_examples = len(lines) to use full data)
-        lines = re.split(r'\n', io.open(path, encoding='UTF-8').read().strip())[1:]
+        lines = re.split(r'[0-9]+(?=ă)', io.open(path, encoding='UTF-8').read().strip())[1:]
 
-        # for l in lines[:25]:
-        #     print(l)
-        #     print("\n\n\n\n\n\n")
+        word_pairs = [[self.preprocess_sentence(w) for w in l.split('ă')][1:]  for l in lines[:num_examples]]
+        word_pairs = [w for w in word_pairs if len(w[1].split()) < 20]
 
-        word_pairs = [[self.preprocess_sentence(w) for w in l.split('|')][1:]  for l in lines[:num_examples]]
-        word_pairs = [w for w in word_pairs if len(w) > 0]
-        print(len(word_pairs))
-        # for w in word_pairs:
-        #     print(w)
-        #     print("------------------")
+        
+
         return zip(*word_pairs)
 
     # Step 3 and Step 4
     def tokenize(self, lang):
         # lang = list of sentences in a language
-
-        print(lang)
 
         # print(len(lang), "example sentence: {}".format(lang[0]))
         lang_tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='', oov_token='<OOV>')

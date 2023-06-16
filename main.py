@@ -8,10 +8,12 @@ import matplotlib.pyplot as plt
 import nltk
 
 BUFFER_SIZE = 600
-BATCH_SIZE = 2
-num_examples = 50
+BATCH_SIZE = 12
+num_examples = 500
 TRAIN = True
 file = "processed/preprocessed_text.csv"
+# file = "ron.txt"
+# file = "dummy.csv"
 
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -30,17 +32,17 @@ max_length_input = example_input_batch.shape[1]
 max_length_output = example_target_batch.shape[1]
 
 embedding_dim = 50
-units = 50
+units = 512
 steps_per_epoch = num_examples//BATCH_SIZE
 
-encoder = Encoder(vocab_inp_size, embedding_dim, units, BATCH_SIZE)
+encoder = Encoder(vocab_inp_size, embedding_dim, units, BATCH_SIZE, num_layers=1)
 decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_input, max_length_output, 'luong')
 
 lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_creator, BATCH_SIZE)
 
 if TRAIN:
-    lstm_model.train(train_dataset, val_dataset, 2, steps_per_epoch, patience=5)
-    lstm_model.load_model("training_checkpoints/")
+    lstm_model.train(train_dataset, val_dataset, 5, steps_per_epoch, patience=5)
+    # lstm_model.load_model("training_checkpoints/")
 else:
     lstm_model.load_model("training_checkpoints/")
 
@@ -48,20 +50,37 @@ hist = lstm_model.get_training_history()
 y_loss = hist[:,0]
 y_val_loss = hist[:,1]
 
-# plt.plot(y_loss, label="Training loss")
-# plt.plot(y_val_loss, label="Validation loss")
-# plt.legend()
-# plt.show()
+plt.plot(y_loss, label="Training loss")
+plt.plot(y_val_loss, label="Validation loss")
+plt.legend()
+plt.show()
+
+# problem_condtions = [    # Put problem descriptions here (later) # preprocess input more to be seq2seq
+#     "write python program find maximum value"
+# ]
+
+# problem_solutions = [    # Put their python code solutions here (later)
+#     "def maximum(a,b): return a if a > b else b"
+# ]
 
 problem_condtions = [    # Put problem descriptions here (later) # preprocess input more to be seq2seq
-    "write python program find maximum value"
+    "numpy"
 ]
 
 problem_solutions = [    # Put their python code solutions here (later)
-    "def maximum(a,b): return a if a > b else b"
+    "np"
 ]
 
-evaluator = Evaluator(problem_solutions, problem_condtions, lstm_model, inp_lang, targ_lang)
+# problem_condtions = [
+#     "Run!"
+# ]
+
+# problem_solutions = [
+#     "Fugi!"
+# ]
+
+
+evaluator = Evaluator(problem_condtions, problem_solutions, lstm_model, inp_lang, targ_lang)
 print(evaluator.bleu_scores())
 print(evaluator.meteor_scores())
 print(evaluator.code_bert_scores())

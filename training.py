@@ -140,10 +140,15 @@ class LSTM_custom:
     def evaluate_sentence(self, inp_lang, targ_lang, sentence):
         sentence = self.dataset_creator.preprocess_sentence(sentence)
 
+        print(inp_lang.word_index)
+        print(targ_lang.word_index)
+
+
         inputs = [inp_lang.word_index[i] for i in sentence.split(' ')]
         inputs = tf.keras.preprocessing.sequence.pad_sequences([inputs],
                                                                 maxlen=self.max_length_input,
                                                                 padding='post')
+
         inputs = tf.convert_to_tensor(inputs)
         inference_batch_size = inputs.shape[0]
         result = ''
@@ -161,20 +166,18 @@ class LSTM_custom:
 
         # Instantiate BasicDecoder object
         decoder_instance = tfa.seq2seq.BasicDecoder(cell=self.decoder.rnn_cell, sampler=greedy_sampler, output_layer=self.decoder.fc)
-        # Setup Memory in decoder stack
+        # # Setup Memory in decoder stack
         self.decoder.attention_mechanism.setup_memory(enc_out)
 
-        # set decoder_initial_state
+        # # set decoder_initial_state
         decoder_initial_state = self.decoder.build_initial_state(inference_batch_size, [enc_h, enc_c], tf.float32)
 
 
-        ### Since the BasicDecoder wraps around Decoder's rnn cell only, you have to ensure that the inputs to BasicDecoder 
-        ### decoding step is output of embedding layer. tfa.seq2seq.GreedyEmbeddingSampler() takes care of this. 
-        ### You only need to get the weights of embedding layer, which can be done by decoder.embedding.variables[0] and pass this callabble to BasicDecoder's call() function
+        # ### Since the BasicDecoder wraps around Decoder's rnn cell only, you have to ensure that the inputs to BasicDecoder 
+        # ### decoding step is output of embedding layer. tfa.seq2seq.GreedyEmbeddingSampler() takes care of this. 
+        # ### You only need to get the weights of embedding layer, which can be done by decoder.embedding.variables[0] and pass this callabble to BasicDecoder's call() function
 
         decoder_embedding_matrix = self.decoder.embedding.variables[0]
-
-        print(decoder_embedding_matrix, start_tokens, end_token, decoder_initial_state)
 
         outputs, _, _ = decoder_instance(decoder_embedding_matrix, start_tokens = start_tokens, end_token= end_token, initial_state=decoder_initial_state)
         return outputs.sample_id.numpy()
