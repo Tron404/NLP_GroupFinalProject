@@ -20,25 +20,29 @@ class NMTDataset:
         return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
 
     ## Step 1 and Step 2 
-    def preprocess_sentence(self, w):
+    def preprocess_sentence(self, w, idx):
         w = self.unicode_to_ascii(w.lower().strip())
 
         # creating a space between a word and the punctuation following it
         # eg: "he is a boy." => "he is a boy ."
         # Reference:- https://stackoverflow.com/questions/3645931/python-padding-punctuation-with-white-spaces-keeping-punctuation
-        w = re.sub(r"([?.!,¿])", r" \1 ", w)
+        w = re.sub(r"([?.!,¿\\\:()];)", r"\1", w)
         w = re.sub(r'[" "]+', " ", w)
 
         # w = " ".join(preprocess_problem_data(w))
 
         # replacing everything with space except (a-z, A-Z, ".", "?", "!", ",")
-        w = re.sub(r"[^a-zA-Z?.!,¿]+", " ", w)
+        # w = re.sub(r"[^a-zA-Z?.!,¿]+", " ", w)
 
         w = w.strip()
 
+        if idx > 1:
+            # print(w)
+            # w = " ".join(preprocess_code_data(w)[:50])
+            w = " ".join(w.split()[:40])
+
         # adding a start and an end token to the sentence
         # so that the model know when to start and stop predicting.
-        # w = '<start> ' + w + ' <end>'
         w = '<start> ' + w + ' <end>'
 
         return w
@@ -48,10 +52,10 @@ class NMTDataset:
         # num_examples : Limit the total number of training example for faster training (set num_examples = len(lines) to use full data)
         lines = re.split(r'[0-9]+(?=ă)', io.open(path, encoding='UTF-8').read().strip())[1:]
 
-        word_pairs = [[self.preprocess_sentence(w) for w in l.split('ă')][1:]  for l in lines[:num_examples]]
-        word_pairs = [w for w in word_pairs if len(w[1].split()) < 20]
+        word_pairs = [[self.preprocess_sentence(w, idx) for idx, w in enumerate(l.split('ă'))][1:]  for l in lines[:num_examples]]
 
-        
+        for w in word_pairs:
+            print(w), exit() if len(w) != 2 else 1
 
         return zip(*word_pairs)
 
