@@ -54,8 +54,8 @@ class NMTDataset:
 
         word_pairs = [[self.preprocess_sentence(w, idx) for idx, w in enumerate(l.split('ă'))][1:]  for l in lines[:num_examples]]
 
-        for w in word_pairs:
-            print(w), exit() if len(w) != 2 else 1
+        # for w in word_pairs:
+        #     print(w), exit() if len(w) != 2 else 1
 
         return zip(*word_pairs)
 

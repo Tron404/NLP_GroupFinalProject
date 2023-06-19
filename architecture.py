@@ -4,7 +4,7 @@ import tensorflow_addons as tfa
 # import keras_nlp
 
 class Encoder(tf.keras.Model):
-  def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz, num_layers = 1):
+  def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz, num_layers = 5):
     super(Encoder, self).__init__()
     self.batch_sz = batch_sz
     self.enc_units = enc_units
@@ -21,6 +21,7 @@ class Encoder(tf.keras.Model):
                                    dropout=0.2
                                    )
                                 )
+    self.batch_norm = tf.keras.layers.BatchNormalization()
       
   def call(self, x, hidden):
     x = self.embedding(x)
@@ -28,7 +29,10 @@ class Encoder(tf.keras.Model):
       output, h, c = lstm_layer(x, initial_state = hidden)
       hidden = [h, c]
       x = output
-    return output, h, c
+    
+    norm_output = self.batch_norm(output)
+
+    return norm_output, h, c
 
   def initialize_hidden_state(self):
     return [tf.zeros((self.batch_sz, self.enc_units)), tf.zeros((self.batch_sz, self.enc_units))]
