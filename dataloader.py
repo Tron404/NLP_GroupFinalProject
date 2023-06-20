@@ -19,7 +19,7 @@ class NMTDataset:
     def unicode_to_ascii(self, s):
         return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
 
-    ## Step 1 and Step 2 
+    # ## Step 1 and Step 2 
     def preprocess_sentence(self, w, idx):
         w = self.unicode_to_ascii(w.lower().strip())
 
@@ -58,36 +58,57 @@ class NMTDataset:
         #     print(w), exit() if len(w) != 2 else 1
 
         return zip(*word_pairs)
+    
+    def create_dataset(self, path, num_examples):
+        # path : path to spa-eng.txt file
+        # num_examples : Limit the total number of training example for faster training (set num_examples = len(lines) to use full data)
+        lines = re.split(r'[0-9]+(?=ă)', io.open(path, encoding='UTF-8').read().strip())[1:]
 
-    # Step 3 and Step 4
-    def tokenize(self, lang):
-        # lang = list of sentences in a language
+        word_pairs = [[self.preprocess_sentence(w, idx) for idx, w in enumerate(l.split('ă'))][1:]  for l in lines[:num_examples]]
 
-        # print(len(lang), "example sentence: {}".format(lang[0]))
-        lang_tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='', oov_token='<OOV>')
-        lang_tokenizer.fit_on_texts(lang)
+        # for w in word_pairs:
+        #     print(w), exit() if len(w) != 2 else 1
 
-        ## tf.keras.preprocessing.text.Tokenizer.texts_to_sequences converts string (w1, w2, w3, ......, wn) 
-        ## to a list of correspoding integer ids of words (id_w1, id_w2, id_w3, ...., id_wn)
-        tensor = lang_tokenizer.texts_to_sequences(lang) 
+        return zip(*word_pairs)
 
-        ## tf.keras.preprocessing.sequence.pad_sequences takes argument a list of integer id sequences 
-        ## and pads the sequences to match the longest sequences in the given input
-        tensor = tf.keras.preprocessing.sequence.pad_sequences(tensor, padding='post')
+    # # Step 3 and Step 4
+    # def tokenize(self, lang):
+    #     # lang = list of sentences in a language
 
-        return tensor, lang_tokenizer
+    #     # print(len(lang), "example sentence: {}".format(lang[0]))
+    #     lang_tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='', oov_token='<OOV>')
+    #     lang_tokenizer.fit_on_texts(lang)
 
-    def load_dataset(self, path, num_examples=None):
+    #     ## tf.keras.preprocessing.text.Tokenizer.texts_to_sequences converts string (w1, w2, w3, ......, wn) 
+    #     ## to a list of correspoding integer ids of words (id_w1, id_w2, id_w3, ...., id_wn)
+    #     tensor = lang_tokenizer.texts_to_sequences(lang) 
+
+    #     ## tf.keras.preprocessing.sequence.pad_sequences takes argument a list of integer id sequences 
+    #     ## and pads the sequences to match the longest sequences in the given input
+    #     tensor = tf.keras.preprocessing.sequence.pad_sequences(tensor, padding='post')
+
+    #     return tensor, lang_tokenizer
+
+    # def load_dataset(self, path, num_examples=None):
         # creating cleaned input, output pairs
+        # inp_lang, targ_lang = self.create_dataset(path, num_examples)
+
+        # input_tensor, inp_lang_tokenizer = self.tokenize(inp_lang)
+        # target_tensor, targ_lang_tokenizer = self.tokenize(targ_lang)
+
+        # return input_tensor, target_tensor, inp_lang_tokenizer, targ_lang_tokenizer
+    
+# ----------------------------------------------------------
+    def load_dataset_embeddings(self, path, embeddings, num_examples=None):
         inp_lang, targ_lang = self.create_dataset(path, num_examples)
 
-        input_tensor, inp_lang_tokenizer = self.tokenize(inp_lang)
-        target_tensor, targ_lang_tokenizer = self.tokenize(targ_lang)
+        input_tensor = [embeddings[w] if w in embeddings.keys() else embeddings['<oov>'] for w in inp_lang] 
+        target_tensor = [embeddings[w] if w in embeddings.keys() else embeddings['<oov>'] for w in targ_lang]
 
-        return input_tensor, target_tensor, inp_lang_tokenizer, targ_lang_tokenizer
+        return input_tensor, target_tensor
 
-    def call(self, num_examples, file_path, BUFFER_SIZE, BATCH_SIZE):
-        input_tensor, target_tensor, self.inp_lang_tokenizer, self.targ_lang_tokenizer = self.load_dataset(file_path, num_examples)
+    def call(self, num_examples, file_path, BUFFER_SIZE, BATCH_SIZE, embbedings):
+        input_tensor, target_tensor = self.load_dataset_embeddings(file_path, embbedings, num_examples)
 
         input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = train_test_split(input_tensor, target_tensor, test_size=0.2)
 
@@ -97,4 +118,4 @@ class NMTDataset:
         val_dataset = tf.data.Dataset.from_tensor_slices((input_tensor_val, target_tensor_val))
         val_dataset = val_dataset.batch(BATCH_SIZE, drop_remainder=True)
 
-        return train_dataset, val_dataset, self.inp_lang_tokenizer, self.targ_lang_tokenizer
+        return train_dataset, val_dataset

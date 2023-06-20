@@ -6,35 +6,23 @@ from evaluation_metrics import *
 import matplotlib.pyplot as plt
 import dill
 import sys
+import re
+import pickle
 
 import nltk
 
 def read_embeddings(file):
-    glove_embeddings = {}
-    with open(file, "r") as f:
-        no_lines = 1
-        line = f.readline() # read header line
-        line = re.sub(r"\n", "", line)
-        total_lines, embedding_dim = line.split(" ")
-        total_lines, embedding_dim = int(total_lines), int(embedding_dim)
-        line = f.readline() # actual first line
-        while line != "":
-            sys.stdout.write("\r" + f"Read line {no_lines}/{total_lines}") 
-            line = re.sub(r"\n", "", line)
-            line = line.split(" ")
-            glove_embeddings[line[0]] = list(map(float, line[1:])) # one word per line
-            line = f.readline()
-            no_lines += 1
+    glove_embeddings = pickle.load(open(file, "rb"))
 
-    return glove_embeddings
+    return glove_embeddings, len(glove_embeddings), len(glove_embeddings["<oov>"])
 
 BUFFER_SIZE = 4000
 BATCH_SIZE = 24
-num_examples = 3000
+num_examples = 30
 
+glove_embeddings, vocab_size, embedding_dim = read_embeddings("processed/ceva_ceva.pkl")
 
-glove_embeddings = read_embeddings("processed/glove-wiki-gigaword-50-word2vec.txt")
-exit()
+# print(([w for w in glove_embeddings.keys()]))
 
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -42,21 +30,25 @@ nltk.download('wordnet')
 
 file = "processed/preprocessed_text.csv"
 
-
-
 tf.keras.backend.clear_session()
 
 dataset_creator = NMTDataset('NL-PL')
-train_dataset, val_dataset, inp_lang, targ_lang = dataset_creator.call(num_examples, file, BUFFER_SIZE, BATCH_SIZE)
+train_dataset, val_dataset = dataset_creator.call(num_examples, file, BUFFER_SIZE, BATCH_SIZE, glove_embeddings)
+
 
 example_input_batch, example_target_batch = next(iter(train_dataset))
 
-vocab_inp_size = len(inp_lang.word_index)+1
-vocab_tar_size = len(targ_lang.word_index)+1
+# vocab_inp_size = len(inp_lang.word_index)+1
+# vocab_tar_size = len(targ_lang.word_index)+1
+vocab_inp_size = 1000
+vocab_tar_size = 1000
 max_length_input = example_input_batch.shape[1]
 max_length_output = example_target_batch.shape[1]
 
-embedding_dim = 700
+
+# exit()
+
+embedding_dim = 50
 units = 512
 steps_per_epoch = num_examples//BATCH_SIZE
 
@@ -65,9 +57,9 @@ decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_i
 
 lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_creator, BATCH_SIZE)
 
-TRAIN =  not True
+TRAIN =  True
 if TRAIN:
-    lstm_model.train(train_dataset, val_dataset, 5, steps_per_epoch, patience=5)
+    lstm_model.train(train_dataset, val_dataset, 1, steps_per_epoch, patience=5)
     hist = lstm_model.get_training_history()
     decoder.save_weights("decoder.h5")
 else:

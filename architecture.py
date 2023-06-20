@@ -4,7 +4,7 @@ import tensorflow_addons as tfa
 # import keras_nlp
 
 class Encoder(tf.keras.Model):
-  def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz, num_layers = 5):
+  def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz, num_layers = 7):
     super(Encoder, self).__init__()
     self.batch_sz = batch_sz
     self.enc_units = enc_units
@@ -82,7 +82,7 @@ class Decoder(tf.keras.Model):
     # memory: encoder hidden states of shape (batch_size, max_length_input, enc_units)
     # memory_sequence_length: 1d array of shape (batch_size) with every element set to max_length_input (for masking purpose)
 
-    return tfa.seq2seq.LuongAttention(units=dec_units, memory=memory, memory_sequence_length=memory_sequence_length)
+    return tfa.seq2seq.LuongAttention(units=dec_units, memory=memory, memory_sequence_length=memory_sequence_length, scale=True) # scale = True --> global attention
 
   def build_initial_state(self, batch_sz, encoder_state, Dtype):
     decoder_initial_state = self.rnn_cell.get_initial_state(batch_size=batch_sz, dtype=Dtype)
