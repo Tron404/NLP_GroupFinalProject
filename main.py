@@ -5,18 +5,44 @@ from evaluation_metrics import *
 
 import matplotlib.pyplot as plt
 import dill
+import sys
 
 import nltk
+
+def read_embeddings(file):
+    glove_embeddings = {}
+    with open(file, "r") as f:
+        no_lines = 1
+        line = f.readline() # read header line
+        line = re.sub(r"\n", "", line)
+        total_lines, embedding_dim = line.split(" ")
+        total_lines, embedding_dim = int(total_lines), int(embedding_dim)
+        line = f.readline() # actual first line
+        while line != "":
+            sys.stdout.write("\r" + f"Read line {no_lines}/{total_lines}") 
+            line = re.sub(r"\n", "", line)
+            line = line.split(" ")
+            glove_embeddings[line[0]] = list(map(float, line[1:])) # one word per line
+            line = f.readline()
+            no_lines += 1
+
+    return glove_embeddings
 
 BUFFER_SIZE = 4000
 BATCH_SIZE = 24
 num_examples = 3000
 
-file = "processed/preprocessed_text.csv"
+
+glove_embeddings = read_embeddings("processed/glove-wiki-gigaword-50-word2vec.txt")
+exit()
 
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
+
+file = "processed/preprocessed_text.csv"
+
+
 
 tf.keras.backend.clear_session()
 
