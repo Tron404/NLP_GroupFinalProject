@@ -9,8 +9,8 @@ import dill
 import nltk
 
 BUFFER_SIZE = 4000
-BATCH_SIZE = 20
-num_examples = 100
+BATCH_SIZE = 24
+num_examples = 3000
 
 file = "processed/preprocessed_text.csv"
 
@@ -34,14 +34,14 @@ embedding_dim = 300
 units = 512
 steps_per_epoch = num_examples//BATCH_SIZE
 
-encoder = Encoder(vocab_inp_size, embedding_dim, units, BATCH_SIZE, num_layers=3)
+encoder = Encoder(vocab_inp_size, embedding_dim, units, BATCH_SIZE, num_layers=20)
 decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_input, max_length_output)
 
 lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_creator, BATCH_SIZE)
 
-TRAIN =  not True
+TRAIN =  True
 if TRAIN:
-    lstm_model.train(train_dataset, val_dataset, 5, steps_per_epoch, patience=5)
+    lstm_model.train(train_dataset, val_dataset, 250, steps_per_epoch, patience=5)
     hist = lstm_model.get_training_history()
     decoder.save_weights("decoder.h5")
 else:
@@ -67,13 +67,13 @@ problem_solutions = [    # Put their python code solutions here (later)
     "def add_numbers(a, b):\n    return a + b"
 ]
 
-problem_condtions = [    # Put problem descriptions here (later) # preprocess input more to be seq2seq
-    "numpy"
-]
+# problem_condtions = [    # Put problem descriptions here (later) # preprocess input more to be seq2seq
+#     "numpy"
+# ]
 
-problem_solutions = [    # Put their python code solutions here (later)
-    "np"
-]
+# problem_solutions = [    # Put their python code solutions here (later)
+#     "np"
+# ]
 
 
 evaluator = Evaluator(problem_condtions, problem_solutions, lstm_model, inp_lang, targ_lang)

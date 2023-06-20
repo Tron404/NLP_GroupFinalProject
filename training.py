@@ -16,7 +16,7 @@ class LSTM_custom(tf.keras.Model):
         self.units = units
         self.max_length_input = max_length_input
         self.dataset_creator = dataset_creator
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-5)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-6)
 
         self.history = []
         self.checkpoint = self.checkpoint = tf.train.Checkpoint(optimizer=self.optimizer,
@@ -103,7 +103,7 @@ class LSTM_custom(tf.keras.Model):
                 input_progressBar.set_description(f"Epoch: {epoch+1} === Loss: {total_loss/(batch+1):.3f} === Batch: {batch+1}/{len(train_batch_data)} === Patience: {patient_round}")
 
 
-            val_size = int(steps_per_epoch * 0.5)
+            val_size = int(steps_per_epoch * 1)
             val_dataset = val_dataset.shuffle(val_size, reshuffle_each_iteration=True)
             val_batch_data = val_dataset.take(val_size)
             val_progressBar = tqdm(enumerate(val_batch_data))
