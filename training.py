@@ -16,7 +16,16 @@ class LSTM_custom(tf.keras.Model):
         self.units = units
         self.max_length_input = max_length_input
         self.dataset_creator = dataset_creator
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-6)
+
+        initial_learning_rate = 1e-3
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate,
+            decay_steps=100000,
+            decay_rate=0.96,
+            staircase=True)
+
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+
 
         self.history = []
         self.checkpoint = self.checkpoint = tf.train.Checkpoint(optimizer=self.optimizer,

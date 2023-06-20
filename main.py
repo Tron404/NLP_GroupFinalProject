@@ -30,7 +30,7 @@ vocab_tar_size = len(targ_lang.word_index)+1
 max_length_input = example_input_batch.shape[1]
 max_length_output = example_target_batch.shape[1]
 
-embedding_dim = 300
+embedding_dim = 700
 units = 512
 steps_per_epoch = num_examples//BATCH_SIZE
 
@@ -39,9 +39,9 @@ decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_i
 
 lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_creator, BATCH_SIZE)
 
-TRAIN =  True
+TRAIN =  not True
 if TRAIN:
-    lstm_model.train(train_dataset, val_dataset, 250, steps_per_epoch, patience=5)
+    lstm_model.train(train_dataset, val_dataset, 5, steps_per_epoch, patience=5)
     hist = lstm_model.get_training_history()
     decoder.save_weights("decoder.h5")
 else:
