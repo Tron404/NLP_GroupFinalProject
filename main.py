@@ -12,8 +12,8 @@ import pickle
 import nltk
 
 BUFFER_SIZE = 4000
-BATCH_SIZE = 5
-num_examples = 300
+BATCH_SIZE = 30
+num_examples = 3000
 
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -42,7 +42,7 @@ decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_i
 
 lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_creator, BATCH_SIZE)
 
-lstm_model.train(train_dataset, val_dataset, 2, steps_per_epoch, patience=5)
+lstm_model.train(train_dataset, val_dataset, 5, steps_per_epoch, patience=5)
 hist = lstm_model.get_training_history()
 
 y_loss = hist[:,0]

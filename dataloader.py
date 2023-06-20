@@ -24,6 +24,7 @@ class NMTDataset:
         self.DIM = 50
         self.model = f"glove-wiki-gigaword-{self.DIM}-word2vec"
         self.embedding_model = self.load_embedding_model()
+        self.test_size = 0.2
 
     # turn problem descriptions into clean tokens
     def preprocess_problem_data(self, text):
@@ -65,7 +66,7 @@ class NMTDataset:
         return tokenized_code
     
     def add_sos_eos(self, tokens):
-        tokens = ['<sos>'] + tokens + ['<eos>']
+        tokens = [' <sos>'] + tokens + ['<eos> ']
         return tokens
     
     def add_pad(self, tokens, max_length):
@@ -84,8 +85,8 @@ class NMTDataset:
         df = df[df['Python Code'].str.len() > 1]
         df.reset_index(drop=True, inplace=True)
 
-        print(df)
         # only if data is not processed yet
+        ##################################
         # df["Problem"] = df["Problem"].apply(self.preprocess_problem_data)
         # df["Python Code"] = df["Python Code"].apply(self.preprocess_code_data)
 
@@ -101,8 +102,10 @@ class NMTDataset:
         # df["Problem"] = df["Problem"].apply(self.add_pad, args=(max_length_input,))
         # df["Python Code"] = df["Python Code"].apply(self.add_pad, args=(max_length_target,))
 
-        df["Problem"] = [" ".join(text) for text in df["Problem"]]
-        df["Python Code"] = [" ".join(text) for text in df["Python Code"]]
+        # df["Problem"] = [" ".join(text) for text in df["Problem"]]
+        # df["Python Code"] = [" ".join(text) for text in df["Python Code"]]
+        ##################################
+
         df.dropna(subset=['Problem', 'Python Code'], inplace=True)  # remove any rows with missing values
 
         return df["Problem"].to_list(), df["Python Code"].to_list()
@@ -131,7 +134,7 @@ class NMTDataset:
                 if word in self.embedding_model.keys():
                     vect_emb.append(np.asarray(self.embedding_model.get(word)).astype("float32"))
                 else:
-                    vect_emb.append(np.zeros((self.DIM,)).astype("float32"))
+                    vect_emb.append(np.random.rand(self.DIM).astype("float32"))
 
             embedding_data.append(np.mean(vect_emb, axis=0))
 
@@ -171,7 +174,7 @@ class NMTDataset:
     def call(self, num_examples, file_path, BUFFER_SIZE, BATCH_SIZE):
         input_tensor, target_tensor = self.load_dataset_embeddings(file_path, num_examples)
 
-        input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = train_test_split(input_tensor, target_tensor, test_size=0.2)
+        input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = train_test_split(input_tensor, target_tensor, test_size=self.test_size)
 
         train_dataset = tf.data.Dataset.from_tensor_slices((input_tensor_train, target_tensor_train))
         train_dataset = train_dataset.shuffle(BUFFER_SIZE).batch(BATCH_SIZE, drop_remainder=True)

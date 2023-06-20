@@ -43,6 +43,7 @@ class LSTM_custom(tf.keras.Model):
         mask = tf.cast(mask, dtype=loss.dtype)  
         loss = mask * loss
         loss = tf.reduce_mean(loss)
+
         return loss
     
     @tf.function
@@ -152,20 +153,21 @@ class LSTM_custom(tf.keras.Model):
         return np.asarray(self.history)
 
     def evaluate_sentence(self, inp_lang, targ_lang, sentence):
-        sentence = self.dataset_creator.preprocess_one_sentence(sentence)
+        # sentence = self.dataset_creator.preprocess_one_sentence(sentence)
 
-        # inputs = [inp_lang.word_index[i] if i in inp_lang.word_index else inp_lang.word_index["<OOV>"] for i in sentence.split(' ')]
-        # inputs = tf.keras.preprocessing.sequence.pad_sequences([inputs],
-        #                                                         maxlen=self.max_length_input,
-        #                                                         padding='post')
+        sentence = "<sos> " + sentence + " <eos>"
 
-        inputs = tf.convert_to_tensor(sentence)
+        inputs = [inp_lang.word_index[i] if i in inp_lang.word_index else inp_lang.word_index["<oov>"] for i in sentence.split(' ')]
+        inputs = tf.keras.preprocessing.sequence.pad_sequences([inputs],
+                                                                maxlen=self.max_length_input,
+                                                                padding='post')
+
+        inputs = tf.convert_to_tensor(inputs)
+        # inputs = tf.convert_to_tensor(sentence)
         inference_batch_size = inputs.shape[0]
 
         enc_start_state = [tf.zeros((inference_batch_size, self.units)), tf.zeros((inference_batch_size,self.units))]
         enc_out, enc_h, enc_c = self.encoder(inputs, enc_start_state)
-
-        print(targ_lang.get_config())
 
         start_tokens = tf.fill([inference_batch_size], targ_lang.word_index['<sos>'])
         end_token = targ_lang.word_index['<eos>']
