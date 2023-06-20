@@ -6,20 +6,24 @@ from nltk.tokenize import word_tokenize
 
 class Evaluator:
     def __init__(self, problem_condition, problem_solutions, model, inp_lang, targ_lang):
-        self.problem_conditions = problem_condition
-        self.problem_solutions = problem_solutions
-        self.model = model
-        self.inp_lang = inp_lang
-        self.targ_lang = targ_lang
+        self.problem_conditions = problem_condition   # List of problem conditions
+        self.problem_solutions = problem_solutions   # List of correct solutions to the problems
+        self.model = model                           # Model to be used for translation
+        self.inp_lang = inp_lang                     # Source language tokenizer
+        self.targ_lang = targ_lang                   # Target language tokenizer
 
     def generate_translations(self):
-        predicted_solutions = []
+        predicted_solutions = []  # Empty list to store the model's solutions
 
+        # Iterate over all the problem conditions
         for test_problem in self.problem_conditions:
+            # Generate model's solution for the current problem condition
             solution = self.model.evaluate_sentence(self.inp_lang, self.targ_lang, test_problem)
             solution = self.targ_lang.sequences_to_texts(solution)
+            # Add the model's solution to the list
             predicted_solutions.append(solution)
 
+        # Return the list of model's solutions
         return predicted_solutions
 
     def bleu_scores(self):
@@ -40,20 +44,6 @@ class Evaluator:
 
         return bleu_scores
 
-    # def meteor_scores(self):
-    #     meteor_scores = []
-
-    #     predicted_solutions = self.generate_translations()
-
-    #     for i in range(len(self.problem_solutions)):
-    #         problem = self.problem_solutions[i]
-    #         predicted_solution = predicted_solutions[i]
-    #         print(f"Problem: {problem}\nSolution: {predicted_solution[0]}")
-    #         score = meteor_score([problem], predicted_solution[0])
-    #         meteor_scores.append(score)
-
-    #     return meteor_scores
-    
     def meteor_scores(self):
         meteor_scores = []
         

@@ -11,18 +11,9 @@ import pickle
 
 import nltk
 
-def read_embeddings(file):
-    glove_embeddings = pickle.load(open(file, "rb"))
-
-    return glove_embeddings, len(glove_embeddings), len(glove_embeddings["<oov>"])
-
 BUFFER_SIZE = 4000
-BATCH_SIZE = 24
-num_examples = 30
-
-glove_embeddings, vocab_size, embedding_dim = read_embeddings("processed/ceva_ceva.pkl")
-
-# print(([w for w in glove_embeddings.keys()]))
+BATCH_SIZE = 5
+num_examples = 300
 
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -33,41 +24,26 @@ file = "processed/preprocessed_text.csv"
 tf.keras.backend.clear_session()
 
 dataset_creator = NMTDataset('NL-PL')
-train_dataset, val_dataset = dataset_creator.call(num_examples, file, BUFFER_SIZE, BATCH_SIZE, glove_embeddings)
-
+train_dataset, val_dataset, inp_lang_tokenizer, target_lang_tokenizer = dataset_creator.call(num_examples, file, BUFFER_SIZE, BATCH_SIZE)
 
 example_input_batch, example_target_batch = next(iter(train_dataset))
 
-# vocab_inp_size = len(inp_lang.word_index)+1
-# vocab_tar_size = len(targ_lang.word_index)+1
-vocab_inp_size = 1000
-vocab_tar_size = 1000
+vocab_inp_size = len(inp_lang_tokenizer.get_config()) + 1
+vocab_tar_size = len(target_lang_tokenizer.get_config()) + 1
 max_length_input = example_input_batch.shape[1]
 max_length_output = example_target_batch.shape[1]
-
-
-# exit()
 
 embedding_dim = 50
 units = 512
 steps_per_epoch = num_examples//BATCH_SIZE
 
-encoder = Encoder(vocab_inp_size, embedding_dim, units, BATCH_SIZE, num_layers=20)
+encoder = Encoder(vocab_inp_size, embedding_dim, units, BATCH_SIZE, num_layers=7)
 decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_input, max_length_output)
 
 lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_creator, BATCH_SIZE)
 
-TRAIN =  True
-if TRAIN:
-    lstm_model.train(train_dataset, val_dataset, 1, steps_per_epoch, patience=5)
-    hist = lstm_model.get_training_history()
-    decoder.save_weights("decoder.h5")
-else:
-    # lstm_model.load_model("training_checkpoints/")
-    lstm_model.decoder.build((max_length_input, embedding_dim))
-    lstm_model.decoder.load_weights("decoder.h5")
-    # lstm_model.load_weights("test.h5")
-    hist = dill.load(open("training_history", "rb"))
+lstm_model.train(train_dataset, val_dataset, 2, steps_per_epoch, patience=5)
+hist = lstm_model.get_training_history()
 
 y_loss = hist[:,0]
 y_val_loss = hist[:,1]
@@ -94,7 +70,7 @@ problem_solutions = [    # Put their python code solutions here (later)
 # ]
 
 
-evaluator = Evaluator(problem_condtions, problem_solutions, lstm_model, inp_lang, targ_lang)
+evaluator = Evaluator(problem_condtions, problem_solutions, lstm_model, inp_lang_tokenizer, target_lang_tokenizer)
 print(evaluator.bleu_scores())
 print(evaluator.meteor_scores())
 print(evaluator.code_bert_scores())
