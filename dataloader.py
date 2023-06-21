@@ -110,7 +110,7 @@ class Dataset:
         return tensor, tokenizer
 
     def load_embedding_model(self):
-        if not os.path.exists(self.file_path + self.model + ".txt"):
+        if not os.path.exists(self.file_path + self.model):
             print("Downloading model...")
             model = api.load(self.model)
             model.save_word2vec_format(self.file_path + self.model + ".txt", binary=False)
@@ -132,11 +132,11 @@ class Dataset:
         text = self.preprocess_problem_data(text)
         text = self.add_sos_eos(text)
 
-        print(f"Processed sentence: {text}")
+        # print(f"Processed sentence: {text}")
 
         inputs = [self.inp_lang_tokenizer.word_index[i] if i in self.inp_lang_tokenizer.word_index else self.inp_lang_tokenizer.word_index["<oov>"] for i in text]
-        print(inputs)
-        print(self.inp_lang_tokenizer.word_index["<sos>"], self.inp_lang_tokenizer.word_index["<eos>"], self.inp_lang_tokenizer.word_index["<oov>"])
+        # print(inputs)
+        # print(self.inp_lang_tokenizer.word_index["<sos>"], self.inp_lang_tokenizer.word_index["<eos>"], self.inp_lang_tokenizer.word_index["<oov>"])
         inputs = tf.keras.preprocessing.sequence.pad_sequences([inputs], maxlen=self.max_length_input, padding='post')
 
         return inputs

@@ -24,3 +24,4 @@ Everything we have currently can be defined in the following files:
 * `training.py` -- in this part, the our LSTM with attention architecture, including its functionality for training and code generation is defined.
 * `dataloader.py` -- the code within this file is used to receive, pre-process (e.g., clean, tokenize and create emebeddings) our data set.
 * `evaluation_metrics.py` -- this file is used for defining all the evalution metrics that will be used to assess the quality of the generated code.
+

@@ -32,6 +32,7 @@ class LSTM_custom(tf.keras.Model):
                                         decoder=self.decoder
                                         )
         self.checkpoint_manager = tf.train.CheckpointManager(self.checkpoint, directory="./training_checkpoints", max_to_keep=3)
+        
 
     @tf.function
     def loss_function(self, real, pred):

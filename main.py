@@ -8,9 +8,9 @@ import pickle
 
 import nltk
 
-BUFFER_SIZE = 3300
-BATCH_SIZE = 2
-num_examples = 10
+BUFFER_SIZE = 6300
+BATCH_SIZE = 10
+num_examples = 1000
 
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -45,8 +45,13 @@ decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_i
 
 lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_creator, BATCH_SIZE)
 
-lstm_model.train(train_dataset, val_dataset, 50, steps_per_epoch, patience=5)
-hist = lstm_model.get_training_history()
+TRAIN = True
+if TRAIN == True:
+    lstm_model.train(train_dataset, val_dataset, 50, steps_per_epoch, patience=5)
+    hist = lstm_model.get_training_history()
+else:
+    lstm_model.load_model("training_checkpoints")
+    hist = pickle.load(open("training_history", "rb"))
 
 y_loss = hist[:,0]
 y_val_loss = hist[:,1]
@@ -56,15 +61,15 @@ plt.plot(y_val_loss, label="Validation loss")
 plt.legend()
 plt.show()
 
-problem_condtions = [    # Put problem descriptions here (later) # preprocess input more to be seq2seq
-    "Calculate the sum of two numbers"
-]
+# Load the data set and select some random rows from it to test the model
+test_dataset = pd.read_csv("processed/preprocessed_text.csv", sep = "ă")
+test_dataset = test_dataset.sample(int(num_examples*0.2))
 
-problem_solutions = [    # Put their python code solutions here (later)
-    "def add_numbers(a, b):\n    return a + b"
-]
+problem_condtions = test_dataset["Problem"].values.tolist()
+problem_solutions = test_dataset["Python Code"].values.tolist()
+
 
 evaluator = Evaluator(problem_condtions, problem_solutions, lstm_model, target_lang_tokenizer)
-print(evaluator.bleu_scores())
-print(evaluator.meteor_scores())
-print(evaluator.code_bert_scores())
+print(f"Average BLEU score: {evaluator.bleu_scores()}")
+print(f"Average METEOR score: {evaluator.meteor_scores()}")
+print(f"Average CodeBERTScore: {evaluator.code_bert_scores()}")
