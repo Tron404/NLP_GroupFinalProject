@@ -18,8 +18,8 @@ class Encoder(tf.keras.Model):
                                    return_state=True,
                                    recurrent_initializer='glorot_uniform',
                                    name=f"LSTM{idx}",
-                                   dropout=0.1
-                                  #  recurrent_regularizer="l1"
+                                   dropout=0.2,
+                                   recurrent_regularizer="l1"
                                    )
                                 )
       

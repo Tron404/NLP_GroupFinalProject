@@ -17,8 +17,8 @@ class Dataset:
         self.inp_lang_tokenizer = None
         self.targ_lang_tokenizer = None
         self.file_path = "./processed/"
-        self.DIM = 50
-        self.model = f"glove-wiki-gigaword-{self.DIM}-word2vec"
+        self.DIM = 300
+        self.model = f"glove-wiki-gigaword-{self.DIM}"
         self.embedding_model = self.load_embedding_model()
 
         self.max_length_input = -1
@@ -110,10 +110,10 @@ class Dataset:
         return tensor, tokenizer
 
     def load_embedding_model(self):
-        if not os.path.exists(self.file_path):
+        if not os.path.exists(self.file_path + self.model):
             print("Downloading model...")
             model = api.load(self.model)
-            model.save_word2vec_format(self.file_path, binary=False)
+            model.save_word2vec_format(self.file_path + self.model + ".txt", binary=False)
         print("Loading w2v model...")
         file = open(self.file_path + self.model + ".txt", 'r', encoding='utf8')
         lines = file.readlines()[1:]
@@ -142,7 +142,7 @@ class Dataset:
         return inputs
     
     def build_embedding_matrix(self, tokenizer):
-        matrix = np.random.rand(len(tokenizer.get_config()["word_counts"]) + 1, self.DIM) # +1 for unknown words
+        matrix = np.random.rand(len(tokenizer.get_config()["word_counts"]) + 1, self.DIM) # +1 for <oov>
         
         for token, i in tokenizer.word_index.items():
             if token in self.embedding_model.keys():
@@ -179,6 +179,6 @@ class Dataset:
         self.max_length_output = example_target_batch.shape[1]
 
         self.vocab_input_size = len(self.inp_lang_tokenizer.get_config()["word_counts"]) + 1 # for <oov>
-        self.vocab_target_size = len(self.targ_lang_tokenizer.get_config()["word_counts"]) + 1 # +3 for <eos>, <sos>, <oov>
+        self.vocab_target_size = len(self.targ_lang_tokenizer.get_config()["word_counts"]) + 1
 
         return train_dataset, val_dataset, test_dataset, self.inp_lang_tokenizer, self.targ_lang_tokenizer 

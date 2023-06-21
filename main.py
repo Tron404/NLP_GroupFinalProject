@@ -10,7 +10,7 @@ import nltk
 
 BUFFER_SIZE = 3300
 BATCH_SIZE = 2
-num_examples = 1000
+num_examples = 10
 
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -36,8 +36,8 @@ max_length_output = example_target_batch.shape[1]
 
 print(example_input_batch.shape, example_target_batch.shape)
 
-embedding_dim = 50
-units = 50
+embedding_dim = 300
+units = 512
 steps_per_epoch = num_examples//BATCH_SIZE
 
 encoder = Encoder(vocab_inp_size, embedding_dim, units, BATCH_SIZE, embedding_matrix_input, num_layers=7)
@@ -47,7 +47,7 @@ lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_crea
 
 TRAIN = True
 if TRAIN == True:
-    lstm_model.train(train_dataset, val_dataset, 10, steps_per_epoch, patience=5)
+    lstm_model.train(train_dataset, val_dataset, 50, steps_per_epoch, patience=5)
     hist = lstm_model.get_training_history()
 else:
     lstm_model.load_model("training_checkpoints")
@@ -61,22 +61,13 @@ plt.plot(y_val_loss, label="Validation loss")
 plt.legend()
 plt.show()
 
-# problem_condtions = [    # Put problem descriptions here (later) # preprocess input more to be seq2seq
-#     "Calculate the sum of two numbers"
-# ]
-
-# problem_solutions = [    # Put their python code solutions here (later)
-#     "def add_numbers(a, b):\n    return a + b"
-# ]
-
 problem_condtions = [    # Put problem descriptions here (later) # preprocess input more to be seq2seq
-    "numpy"
+    "Calculate the sum of two numbers"
 ]
 
 problem_solutions = [    # Put their python code solutions here (later)
-    "np"
+    "def add_numbers(a, b):\n    return a + b"
 ]
-
 
 evaluator = Evaluator(problem_condtions, problem_solutions, lstm_model, target_lang_tokenizer)
 print(evaluator.bleu_scores())
