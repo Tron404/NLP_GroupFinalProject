@@ -17,7 +17,7 @@ class LSTM_custom(tf.keras.Model):
         self.max_length_input = max_length_input
         self.dataset_creator = dataset_creator
 
-        initial_learning_rate = 1e-3
+        initial_learning_rate = 1e-4
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate,
             decay_steps=100000,
@@ -101,6 +101,7 @@ class LSTM_custom(tf.keras.Model):
             # print(enc_hidden[0].shape, enc_hidden[1].shape)
 
             """@TODO: maybe shuffle data before each batch computation """
+            train_dataset = train_dataset.shuffle(steps_per_epoch)
             train_batch_data = train_dataset.take(steps_per_epoch)
             input_progressBar = tqdm(enumerate(train_batch_data))
 
@@ -112,10 +113,8 @@ class LSTM_custom(tf.keras.Model):
 
                 input_progressBar.set_description(f"Epoch: {epoch+1} === Loss: {total_loss/(batch+1):.3f} === Batch: {batch+1}/{len(train_batch_data)} === Patience: {patient_round}")
 
-
-            val_size = int(steps_per_epoch * 1)
-            val_dataset = val_dataset.shuffle(val_size, reshuffle_each_iteration=True)
-            val_batch_data = val_dataset.take(val_size)
+            val_dataset = val_dataset.shuffle(steps_per_epoch, reshuffle_each_iteration=True)
+            val_batch_data = val_dataset.take(steps_per_epoch)
             val_progressBar = tqdm(enumerate(val_batch_data))
 
             total_val_loss = 0
@@ -127,7 +126,7 @@ class LSTM_custom(tf.keras.Model):
                 val_progressBar.set_description(f"Epoch: {epoch+1} === Val loss: {total_val_loss/(batch+1):.3f} === Batch: {batch+1}/{len(val_batch_data)}")
 
             loss = total_loss / steps_per_epoch
-            loss_val = total_val_loss / val_size
+            loss_val = total_val_loss / steps_per_epoch
 
             self.history.append([loss, loss_val])
             self.checkpoint_manager.save() # save the last 3 checkpoints
@@ -153,17 +152,9 @@ class LSTM_custom(tf.keras.Model):
         return np.asarray(self.history)
 
     def evaluate_sentence(self, inp_lang, targ_lang, sentence):
-        # sentence = self.dataset_creator.preprocess_one_sentence(sentence)
-
-        sentence = "<sos> " + sentence + " <eos>"
-
-        inputs = [inp_lang.word_index[i] if i in inp_lang.word_index else inp_lang.word_index["<oov>"] for i in sentence.split(' ')]
-        inputs = tf.keras.preprocessing.sequence.pad_sequences([inputs],
-                                                                maxlen=self.max_length_input,
-                                                                padding='post')
+        inputs = self.dataset_creator.process_one_sentence(sentence)
 
         inputs = tf.convert_to_tensor(inputs)
-        # inputs = tf.convert_to_tensor(sentence)
         inference_batch_size = inputs.shape[0]
 
         enc_start_state = [tf.zeros((inference_batch_size, self.units)), tf.zeros((inference_batch_size,self.units))]
@@ -188,7 +179,7 @@ class LSTM_custom(tf.keras.Model):
 
         decoder_embedding_matrix = self.decoder.embedding.variables[0] if len(self.decoder.embedding.variables) > 0 else self.decoder.embedding.variables 
 
-        outputs, _, _ = decoder_instance(decoder_embedding_matrix, start_tokens = start_tokens, end_token= end_token, initial_state=decoder_initial_state)
+        outputs, _, _ = decoder_instance(decoder_embedding_matrix, start_tokens = start_tokens, end_token = end_token, initial_state=decoder_initial_state)
         
         return outputs.sample_id.numpy()
     

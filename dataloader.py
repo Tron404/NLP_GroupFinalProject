@@ -24,7 +24,9 @@ class NMTDataset:
         self.DIM = 50
         self.model = f"glove-wiki-gigaword-{self.DIM}-word2vec"
         self.embedding_model = self.load_embedding_model()
-        self.test_size = 0.2
+
+        self.max_length_input = -1
+        self.max_length_output = -1
 
     # turn problem descriptions into clean tokens
     def preprocess_problem_data(self, text):
@@ -114,39 +116,16 @@ class NMTDataset:
         tokenizer = tf.keras.preprocessing.text.Tokenizer(filters="", oov_token="<oov>")
         tokenizer.fit_on_texts(data_lang)
 
-        return tokenizer
-    
-    def preprocess_one_sentence(self, text):
-        text = self.preprocess_problem_data(text)
-        text = self.add_sos_eos(text)
+        tensor = tokenizer.texts_to_sequences(data_lang)
+        tensor = tf.keras.preprocessing.sequence.pad_sequences(tensor, padding="post")
 
-        text = " ".join(text)
-
-        return self.generate_embeddings([text])
-    
-    def generate_embeddings(self, data):
-        embedding_data = []
-        for data_point in data:
-            vect_emb = []
-            aux = data_point.split(" ")
-
-            for word in aux:
-                if word in self.embedding_model.keys():
-                    vect_emb.append(np.asarray(self.embedding_model.get(word)).astype("float32"))
-                else:
-                    vect_emb.append(np.random.rand(self.DIM).astype("float32"))
-
-            embedding_data.append(np.mean(vect_emb, axis=0))
-
-        return embedding_data
+        return tensor, tokenizer
 
     def load_embedding_model(self):
-
         if not os.path.exists(self.file_path):
             print("Downloading model...")
             model = api.load(self.model)
             model.save_word2vec_format(self.file_path, binary=False)
-        # else
         print("Loading w2v model...")
         file = open(self.file_path + self.model + ".txt", 'r', encoding='utf8')
         lines = file.readlines()[1:]
@@ -160,21 +139,39 @@ class NMTDataset:
             embedding[parts[0]] = asarray(parts[1:], dtype='float32')
         
         return embedding
+    
+    def process_one_sentence(self, text):
+        text = self.preprocess_problem_data(text)
+        text = self.add_sos_eos(text)
+
+        inputs = [self.inp_lang_tokenizer.word_index[i] if i in self.inp_lang_tokenizer.word_index else self.inp_lang_tokenizer.word_index["<oov>"] for i in text]
+        inputs = tf.keras.preprocessing.sequence.pad_sequences([inputs], maxlen=self.max_length_input, padding='post')
+
+        return inputs
+    
+    def build_embedding_matrix(self, tokenizer):
+        matrix = np.random.rand(len(tokenizer.get_config()["word_counts"]) + 3, DIM) # +1 for unknown words
+        
+        for token, i in tokenizer.word_index.items():
+            if token in self.embedding_model.keys():
+                matrix[i] = self.embedding_model.get(token)
+            # else the embedding will be random
+
+        return matrix
 
     def load_dataset_embeddings(self, path, num_examples=None):
         inp_lang, targ_lang = self.create_dataset(path, num_examples)
 
-        self.inp_lang_tokenizer, self.targ_lang_tokenizer = self.build_vocabulary(inp_lang), self.build_vocabulary(targ_lang)
-
-        input_tensor = self.generate_embeddings(inp_lang)
-        target_tensor = self.generate_embeddings(targ_lang)
+        input_tensor, self.inp_lang_tokenizer = self.build_vocabulary(inp_lang)
+        target_tensor, self.targ_lang_tokenizer = self.build_vocabulary(targ_lang)
 
         return input_tensor, target_tensor
 
     def call(self, num_examples, file_path, BUFFER_SIZE, BATCH_SIZE):
         input_tensor, target_tensor = self.load_dataset_embeddings(file_path, num_examples)
 
-        input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = train_test_split(input_tensor, target_tensor, test_size=self.test_size)
+        input_tensor_train, input_tensor_val, target_tensor_train, target_tensor_val = train_test_split(input_tensor, target_tensor, train_size=0.6)
+        input_tensor_val, input_tensor_test, target_tensor_val, target_tensor_test = train_test_split(input_tensor_val, target_tensor_val, test_size=0.5)
 
         train_dataset = tf.data.Dataset.from_tensor_slices((input_tensor_train, target_tensor_train))
         train_dataset = train_dataset.shuffle(BUFFER_SIZE).batch(BATCH_SIZE, drop_remainder=True)
@@ -182,4 +179,12 @@ class NMTDataset:
         val_dataset = tf.data.Dataset.from_tensor_slices((input_tensor_val, target_tensor_val))
         val_dataset = val_dataset.batch(BATCH_SIZE, drop_remainder=True)
 
-        return train_dataset, val_dataset,self.inp_lang_tokenizer, self.targ_lang_tokenizer 
+        test_dataset = tf.data.Dataset.from_tensor_slices((input_tensor_test, target_tensor_test))
+        test_dataset = val_dataset.batch(BATCH_SIZE, drop_remainder=True)
+
+        example_input_batch, example_target_batch = next(iter(train_dataset))
+        self.max_length_input = example_input_batch.shape[1]
+        self.max_length_output = example_target_batch.shape[1]
+
+
+        return train_dataset, val_dataset, test_dataset, self.inp_lang_tokenizer, self.targ_lang_tokenizer 

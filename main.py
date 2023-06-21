@@ -12,8 +12,8 @@ import pickle
 import nltk
 
 BUFFER_SIZE = 4000
-BATCH_SIZE = 30
-num_examples = 3000
+BATCH_SIZE = 5
+num_examples = 1000
 
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -24,26 +24,38 @@ file = "processed/preprocessed_text.csv"
 tf.keras.backend.clear_session()
 
 dataset_creator = NMTDataset('NL-PL')
-train_dataset, val_dataset, inp_lang_tokenizer, target_lang_tokenizer = dataset_creator.call(num_examples, file, BUFFER_SIZE, BATCH_SIZE)
+train_dataset, val_dataset, test_dataset, inp_lang_tokenizer, target_lang_tokenizer = dataset_creator.call(num_examples, file, BUFFER_SIZE, BATCH_SIZE)
+embedding_matrix_input = dataset_creator.build_embedding_matrix(inp_lang_tokenizer)
+embedding_matrix_target = dataset_creator.build_embedding_matrix(target_lang_tokenizer)
+
 
 example_input_batch, example_target_batch = next(iter(train_dataset))
 
-vocab_inp_size = len(inp_lang_tokenizer.get_config()) + 1
-vocab_tar_size = len(target_lang_tokenizer.get_config()) + 1
+print(embedding_matrix_input.shape, embedding_matrix_target)
+
+vocab_inp_size = len(inp_lang_tokenizer.get_config()["word_counts"]) + 3
+vocab_tar_size = len(target_lang_tokenizer.get_config()["word_counts"]) + 3
 max_length_input = example_input_batch.shape[1]
 max_length_output = example_target_batch.shape[1]
+
+print(example_input_batch.shape, example_target_batch.shape)
 
 embedding_dim = 50
 units = 512
 steps_per_epoch = num_examples//BATCH_SIZE
 
-encoder = Encoder(vocab_inp_size, embedding_dim, units, BATCH_SIZE, num_layers=7)
-decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_input, max_length_output)
+encoder = Encoder(vocab_inp_size, embedding_dim, units, BATCH_SIZE, embedding_matrix_input, num_layers=7)
+decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_input, max_length_output, embedding_matrix_target)
 
 lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_creator, BATCH_SIZE)
 
-lstm_model.train(train_dataset, val_dataset, 5, steps_per_epoch, patience=5)
-hist = lstm_model.get_training_history()
+TRAIN = True
+if TRAIN == True:
+    lstm_model.train(train_dataset, val_dataset, 2, steps_per_epoch, patience=5)
+    hist = lstm_model.get_training_history()
+else:
+    lstm_model.load_model("training_checkpoints")
+    hist = pickle.load(open("training_history", "rb"))
 
 y_loss = hist[:,0]
 y_val_loss = hist[:,1]
