@@ -45,13 +45,8 @@ decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_i
 
 lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_creator, BATCH_SIZE)
 
-TRAIN = True
-if TRAIN == True:
-    lstm_model.train(train_dataset, val_dataset, 50, steps_per_epoch, patience=5)
-    hist = lstm_model.get_training_history()
-else:
-    lstm_model.load_model("training_checkpoints")
-    hist = pickle.load(open("training_history", "rb"))
+lstm_model.train(train_dataset, val_dataset, 50, steps_per_epoch, patience=5)
+hist = lstm_model.get_training_history()
 
 y_loss = hist[:,0]
 y_val_loss = hist[:,1]

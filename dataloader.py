@@ -110,7 +110,7 @@ class Dataset:
         return tensor, tokenizer
 
     def load_embedding_model(self):
-        if not os.path.exists(self.file_path + self.model):
+        if not os.path.exists(self.file_path + self.model + ".txt"):
             print("Downloading model...")
             model = api.load(self.model)
             model.save_word2vec_format(self.file_path + self.model + ".txt", binary=False)
