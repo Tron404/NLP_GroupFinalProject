@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-import unicodedata
 import io
 import re
 import os
@@ -11,13 +10,10 @@ from nltk.corpus import stopwords
 import tokenize
 import gensim.downloader as api
 
-from tqdm import tqdm
 from sklearn.model_selection import train_test_split
-from preprocessing_functionality import *
 
-class NMTDataset:
-    def __init__(self, problem_type):
-        self.problem_type = problem_type
+class Dataset:
+    def __init__(self, processed=True):
         self.inp_lang_tokenizer = None
         self.targ_lang_tokenizer = None
         self.file_path = "./processed/"
@@ -27,6 +23,7 @@ class NMTDataset:
 
         self.max_length_input = -1
         self.max_length_output = -1
+        self.processed = processed
 
     # turn problem descriptions into clean tokens
     def preprocess_problem_data(self, text):
@@ -71,11 +68,19 @@ class NMTDataset:
         tokens = [' <sos>'] + tokens + ['<eos> ']
         return tokens
     
-    def add_pad(self, tokens, max_length):
-        while len(tokens) < max_length:
-            tokens.append("<pad>")
-        
-        return tokens
+    def process_dataset(self, df):
+        df["Problem"] = df["Problem"].apply(self.preprocess_problem_data)
+        df["Python Code"] = df["Python Code"].apply(self.preprocess_code_data)
+
+
+        # add <sos> and <eos> tags
+        df["Problem"] = df["Problem"].apply(self.add_sos_eos)
+        df["Python Code"] = df["Python Code"].apply(self.add_sos_eos)
+
+        df["Problem"] = [" ".join(text) for text in df["Problem"]]
+        df["Python Code"] = [" ".join(text) for text in df["Python Code"]]
+
+        return df
     
     def create_dataset(self, path, num_examples):
         df = pd.read_csv(path, sep="ă")
@@ -88,25 +93,8 @@ class NMTDataset:
         df.reset_index(drop=True, inplace=True)
 
         # only if data is not processed yet
-        ##################################
-        # df["Problem"] = df["Problem"].apply(self.preprocess_problem_data)
-        # df["Python Code"] = df["Python Code"].apply(self.preprocess_code_data)
-
-
-        # # add <sos> and <eos> tags
-        # df["Problem"] = df["Problem"].apply(self.add_sos_eos)
-        # df["Python Code"] = df["Python Code"].apply(self.add_sos_eos)
-
-        # add padding
-        # max_length_input = np.max([len(text) for text in df["Problem"]])
-        # max_length_target = np.max([len(text) for text in df["Python Code"]])
-
-        # df["Problem"] = df["Problem"].apply(self.add_pad, args=(max_length_input,))
-        # df["Python Code"] = df["Python Code"].apply(self.add_pad, args=(max_length_target,))
-
-        # df["Problem"] = [" ".join(text) for text in df["Problem"]]
-        # df["Python Code"] = [" ".join(text) for text in df["Python Code"]]
-        ##################################
+        if not self.processed:
+            df = self.process_dataset(df)
 
         df.dropna(subset=['Problem', 'Python Code'], inplace=True)  # remove any rows with missing values
 
@@ -150,7 +138,7 @@ class NMTDataset:
         return inputs
     
     def build_embedding_matrix(self, tokenizer):
-        matrix = np.random.rand(len(tokenizer.get_config()["word_counts"]) + 3, DIM) # +1 for unknown words
+        matrix = np.random.rand(len(tokenizer.get_config()["word_counts"]) + 3, self.DIM) # +1 for unknown words
         
         for token, i in tokenizer.word_index.items():
             if token in self.embedding_model.keys():

@@ -1,7 +1,6 @@
 import pickle
 import tensorflow as tf
 import tensorflow_addons as tfa
-import os
 import time
 import numpy as np
 
@@ -53,8 +52,8 @@ class LSTM_custom(tf.keras.Model):
         with tf.GradientTape() as tape:
             enc_output, enc_h, enc_c = self.encoder(inp, enc_hidden)
 
-            dec_input = targ[ : , :-1 ] # Ignore <end> token
-            real = targ[ : , 1: ]         # ignore <start> token
+            dec_input = targ[ : , :-1 ] # Ignore <eos> token
+            real = targ[ : , 1: ]         # ignore <sos> token
 
             # Set the AttentionMechanism object with encoder_outputs
             self.decoder.attention_mechanism.setup_memory(enc_output)
@@ -74,8 +73,8 @@ class LSTM_custom(tf.keras.Model):
     @tf.function
     def validation_step(self, inp, targ, enc_hidden):
         enc_output, enc_h, enc_c = self.encoder(inp, enc_hidden)
-        dec_input = targ[ : , :-1 ] # Ignore <end> token
-        real = targ[ : , 1: ]         # ignore <start> token
+        dec_input = targ[ : , :-1 ] # Ignore <eos> token
+        real = targ[ : , 1: ]         # ignore <sos> token
 
         # Set the AttentionMechanism object with encoder_outputs
         self.decoder.attention_mechanism.setup_memory(enc_output)
@@ -125,8 +124,8 @@ class LSTM_custom(tf.keras.Model):
 
                 val_progressBar.set_description(f"Epoch: {epoch+1} === Val loss: {total_val_loss/(batch+1):.3f} === Batch: {batch+1}/{len(val_batch_data)}")
 
-            loss = total_loss / steps_per_epoch
-            loss_val = total_val_loss / steps_per_epoch
+            loss = total_loss / len(train_batch_data)
+            loss_val = total_val_loss / len(val_batch_data)
 
             self.history.append([loss, loss_val])
             self.checkpoint_manager.save() # save the last 3 checkpoints
@@ -142,7 +141,7 @@ class LSTM_custom(tf.keras.Model):
                     print(f"Stopping training early; loss has not improved in {patient_round} epochs")
                     break
 
-            print('Epoch {} Loss {:.4f} Val loss {:.4f}'.format(epoch + 1, loss, loss_val))
+            print('Epoch {} Loss {:.3f} Val loss {:.3f}'.format(epoch + 1, loss, loss_val))
             print('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
         
         pickle.dump(np.asarray(self.history), open("training_history", "wb"))
@@ -151,7 +150,7 @@ class LSTM_custom(tf.keras.Model):
     def get_training_history(self):
         return np.asarray(self.history)
 
-    def evaluate_sentence(self, inp_lang, targ_lang, sentence):
+    def evaluate_sentence(self, targ_lang, sentence):
         inputs = self.dataset_creator.process_one_sentence(sentence)
 
         inputs = tf.convert_to_tensor(inputs)

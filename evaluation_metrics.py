@@ -5,11 +5,10 @@ from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from nltk.tokenize import word_tokenize
 
 class Evaluator:
-    def __init__(self, problem_condition, problem_solutions, model, inp_lang, targ_lang):
+    def __init__(self, problem_condition, problem_solutions, model, targ_lang):
         self.problem_conditions = problem_condition   # List of problem conditions
         self.problem_solutions = problem_solutions   # List of correct solutions to the problems
         self.model = model                           # Model to be used for translation
-        self.inp_lang = inp_lang                     # Source language tokenizer
         self.targ_lang = targ_lang                   # Target language tokenizer
 
     def generate_translations(self):
@@ -18,7 +17,7 @@ class Evaluator:
         # Iterate over all the problem conditions
         for test_problem in self.problem_conditions:
             # Generate model's solution for the current problem condition
-            solution = self.model.evaluate_sentence(self.inp_lang, self.targ_lang, test_problem)
+            solution = self.model.evaluate_sentence(self.targ_lang, test_problem)
             solution = self.targ_lang.sequences_to_texts(solution)
             # Add the model's solution to the list
             predicted_solutions.append(solution)

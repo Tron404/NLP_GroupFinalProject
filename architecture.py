@@ -3,7 +3,7 @@ import tensorflow_addons as tfa
 
 # import keras_nlp
 
-class Encoder(tf.keras.layers.Layer):
+class Encoder(tf.keras.Model):
   def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz, embeddings, num_layers = 7):
     super(Encoder, self).__init__()
     self.batch_sz = batch_sz
@@ -22,6 +22,7 @@ class Encoder(tf.keras.layers.Layer):
                                    recurrent_regularizer="l1"
                                    )
                                 )
+      
     self.batch_norm = tf.keras.layers.BatchNormalization()
       
   def call(self, x, hidden):
@@ -39,7 +40,7 @@ class Encoder(tf.keras.layers.Layer):
     return [tf.zeros((self.batch_sz, self.enc_units)), tf.zeros((self.batch_sz, self.enc_units))]
 
 
-class Decoder(tf.keras.layers.Layer):
+class Decoder(tf.keras.Model):
   def __init__(self, vocab_size, embedding_dim, dec_units, batch_sz, max_length_input, max_length_output, embeddings):
     super(Decoder, self).__init__()
     self.batch_sz = batch_sz
