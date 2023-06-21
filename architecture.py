@@ -4,11 +4,11 @@ import tensorflow_addons as tfa
 # import keras_nlp
 
 class Encoder(tf.keras.Model):
-  def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz, num_layers = 5):
+  def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz, embeddings, num_layers = 1):
     super(Encoder, self).__init__()
     self.batch_sz = batch_sz
     self.enc_units = enc_units
-    self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim)
+    self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim, weights=[embeddings], trainable=False)
 
     ##-------- LSTM layer in Encoder ------- ##
     self.lstm_layers = []
@@ -18,9 +18,11 @@ class Encoder(tf.keras.Model):
                                    return_state=True,
                                    recurrent_initializer='glorot_uniform',
                                    name=f"LSTM{idx}",
-                                   dropout=0.2
+                                   dropout=0.2,
+                                   recurrent_regularizer="l1"
                                    )
                                 )
+      
     self.batch_norm = tf.keras.layers.BatchNormalization()
       
   def call(self, x, hidden):
@@ -39,7 +41,7 @@ class Encoder(tf.keras.Model):
 
 
 class Decoder(tf.keras.Model):
-  def __init__(self, vocab_size, embedding_dim, dec_units, batch_sz, max_length_input, max_length_output):
+  def __init__(self, vocab_size, embedding_dim, dec_units, batch_sz, max_length_input, max_length_output, embeddings):
     super(Decoder, self).__init__()
     self.batch_sz = batch_sz
     self.dec_units = dec_units
@@ -47,8 +49,10 @@ class Decoder(tf.keras.Model):
     self.max_length_input = max_length_input
     self.max_length_output = max_length_output
 
+    self.embeddings = embeddings
+
     # Embedding Layer
-    self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim)
+    self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim, weights = [self.embeddings], trainable=False)
 
     # Define the fundamental cell for decoder recurrent structure
     self.decoder_rnn_cell = tf.keras.layers.LSTMCell(self.dec_units)
@@ -82,7 +86,7 @@ class Decoder(tf.keras.Model):
     # memory: encoder hidden states of shape (batch_size, max_length_input, enc_units)
     # memory_sequence_length: 1d array of shape (batch_size) with every element set to max_length_input (for masking purpose)
 
-    return tfa.seq2seq.LuongAttention(units=dec_units, memory=memory, memory_sequence_length=memory_sequence_length)
+    return tfa.seq2seq.LuongAttention(units=dec_units, memory=memory, memory_sequence_length=memory_sequence_length, scale=True) # scale = True --> global attention
 
   def build_initial_state(self, batch_sz, encoder_state, Dtype):
     decoder_initial_state = self.rnn_cell.get_initial_state(batch_size=batch_sz, dtype=Dtype)

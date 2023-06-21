@@ -1,7 +1,6 @@
 import pickle
 import tensorflow as tf
 import tensorflow_addons as tfa
-import os
 import time
 import numpy as np
 
@@ -20,7 +19,7 @@ class LSTM_custom(tf.keras.Model):
         initial_learning_rate = 1e-3
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate,
-            decay_steps=100000,
+            decay_steps=10000,
             decay_rate=0.96,
             staircase=True)
 
@@ -33,7 +32,6 @@ class LSTM_custom(tf.keras.Model):
                                         decoder=self.decoder
                                         )
         self.checkpoint_manager = tf.train.CheckpointManager(self.checkpoint, directory="./training_checkpoints", max_to_keep=3)
-        
 
     @tf.function
     def loss_function(self, real, pred):
@@ -43,6 +41,7 @@ class LSTM_custom(tf.keras.Model):
         mask = tf.cast(mask, dtype=loss.dtype)  
         loss = mask * loss
         loss = tf.reduce_mean(loss)
+
         return loss
     
     @tf.function
@@ -52,8 +51,8 @@ class LSTM_custom(tf.keras.Model):
         with tf.GradientTape() as tape:
             enc_output, enc_h, enc_c = self.encoder(inp, enc_hidden)
 
-            dec_input = targ[ : , :-1 ] # Ignore <end> token
-            real = targ[ : , 1: ]         # ignore <start> token
+            dec_input = targ[ : , :-1 ] # Ignore <eos> token
+            real = targ[ : , 1: ]         # ignore <sos> token
 
             # Set the AttentionMechanism object with encoder_outputs
             self.decoder.attention_mechanism.setup_memory(enc_output)
@@ -73,8 +72,8 @@ class LSTM_custom(tf.keras.Model):
     @tf.function
     def validation_step(self, inp, targ, enc_hidden):
         enc_output, enc_h, enc_c = self.encoder(inp, enc_hidden)
-        dec_input = targ[ : , :-1 ] # Ignore <end> token
-        real = targ[ : , 1: ]         # ignore <start> token
+        dec_input = targ[ : , :-1 ] # Ignore <eos> token
+        real = targ[ : , 1: ]         # ignore <sos> token
 
         # Set the AttentionMechanism object with encoder_outputs
         self.decoder.attention_mechanism.setup_memory(enc_output)
@@ -91,15 +90,12 @@ class LSTM_custom(tf.keras.Model):
         minimum_epoch_loss = np.inf
         patient_round = 0
 
-        #@TODO: break sequence into sub sequences if they are too long?
-
         for epoch in range(EPOCHS):
             start = time.time()
 
             enc_hidden = self.encoder.initialize_hidden_state()
-            # print(enc_hidden[0].shape, enc_hidden[1].shape)
 
-            """@TODO: maybe shuffle data before each batch computation """
+            train_dataset = train_dataset.shuffle(steps_per_epoch)
             train_batch_data = train_dataset.take(steps_per_epoch)
             input_progressBar = tqdm(enumerate(train_batch_data))
 
@@ -111,10 +107,8 @@ class LSTM_custom(tf.keras.Model):
 
                 input_progressBar.set_description(f"Epoch: {epoch+1} === Loss: {total_loss/(batch+1):.3f} === Batch: {batch+1}/{len(train_batch_data)} === Patience: {patient_round}")
 
-
-            val_size = int(steps_per_epoch * 1)
-            val_dataset = val_dataset.shuffle(val_size, reshuffle_each_iteration=True)
-            val_batch_data = val_dataset.take(val_size)
+            val_dataset = val_dataset.shuffle(steps_per_epoch, reshuffle_each_iteration=True)
+            val_batch_data = val_dataset.take(steps_per_epoch)
             val_progressBar = tqdm(enumerate(val_batch_data))
 
             total_val_loss = 0
@@ -126,7 +120,7 @@ class LSTM_custom(tf.keras.Model):
                 val_progressBar.set_description(f"Epoch: {epoch+1} === Val loss: {total_val_loss/(batch+1):.3f} === Batch: {batch+1}/{len(val_batch_data)}")
 
             loss = total_loss / steps_per_epoch
-            loss_val = total_val_loss / val_size
+            loss_val = total_val_loss / steps_per_epoch
 
             self.history.append([loss, loss_val])
             self.checkpoint_manager.save() # save the last 3 checkpoints
@@ -142,39 +136,32 @@ class LSTM_custom(tf.keras.Model):
                     print(f"Stopping training early; loss has not improved in {patient_round} epochs")
                     break
 
-            print('Epoch {} Loss {:.4f} Val loss {:.4f}'.format(epoch + 1, loss, loss_val))
+            print('Epoch {} Loss {:.3f} Val loss {:.3f}'.format(epoch + 1, loss, loss_val))
             print('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
         
         pickle.dump(np.asarray(self.history), open("training_history", "wb"))
-        self.save_weights("test.h5")
+        self.save_weights("weights.h5")
 
     def get_training_history(self):
         return np.asarray(self.history)
 
-    def evaluate_sentence(self, inp_lang, targ_lang, sentence):
-        sentence = self.dataset_creator.preprocess_sentence(sentence, 1)
-
-        inputs = [inp_lang.word_index[i] if i in inp_lang.word_index else inp_lang.word_index["<OOV>"] for i in sentence.split(' ')]
-        inputs = tf.keras.preprocessing.sequence.pad_sequences([inputs],
-                                                                maxlen=self.max_length_input,
-                                                                padding='post')
+    def evaluate_sentence(self, targ_lang, sentence):
+        inputs = self.dataset_creator.process_one_sentence(sentence)
 
         inputs = tf.convert_to_tensor(inputs)
         inference_batch_size = inputs.shape[0]
-        result = ''
 
         enc_start_state = [tf.zeros((inference_batch_size, self.units)), tf.zeros((inference_batch_size,self.units))]
         enc_out, enc_h, enc_c = self.encoder(inputs, enc_start_state)
 
-        dec_h = enc_h
-        dec_c = enc_c
+        start_tokens = tf.fill([inference_batch_size], targ_lang.word_index['<sos>'])
+        end_token = targ_lang.word_index['<eos>']
 
-        start_tokens = tf.fill([inference_batch_size], targ_lang.word_index['<start>'])
-        end_token = targ_lang.word_index['<end>']
-
-        greedy_sampler = tfa.seq2seq.GreedyEmbeddingSampler()
+        # greedy_sampler = tfa.seq2seq.GreedyEmbeddingSampler()
+        greedy_sampler = tfa.seq2seq.SampleEmbeddingSampler(self.decoder.embedding)
 
         # Instantiate BasicDecoder object
+        # DO NOT REMOVE MAXIMUM ITERATIONS!!! - the decoder will get stuck in an infinite loop otherwise
         decoder_instance = tfa.seq2seq.BasicDecoder(cell=self.decoder.rnn_cell, sampler=greedy_sampler, output_layer=self.decoder.fc) # change sampler from training to greedy to extract result from embedding
         # # Setup Memory in decoder stack
         self.decoder.attention_mechanism.setup_memory(enc_out)
@@ -182,13 +169,9 @@ class LSTM_custom(tf.keras.Model):
         # # set decoder_initial_state
         decoder_initial_state = self.decoder.build_initial_state(inference_batch_size, [enc_h, enc_c], tf.float32)
 
-        # ### Since the BasicDecoder wraps around Decoder's rnn cell only, you have to ensure that the inputs to BasicDecoder 
-        # ### decoding step is output of embedding layer. tfa.seq2seq.GreedyEmbeddingSampler() takes care of this. 
-        # ### You only need to get the weights of embedding layer, which can be done by decoder.embedding.variables[0] and pass this callabble to BasicDecoder's call() function
+        decoder_embedding_matrix = self.decoder.embedding.variables[0]
 
-        decoder_embedding_matrix = self.decoder.embedding.variables[0] if len(self.decoder.embedding.variables) > 0 else self.decoder.embedding.variables 
-
-        outputs, _, _ = decoder_instance(decoder_embedding_matrix, start_tokens = start_tokens, end_token= end_token, initial_state=decoder_initial_state)
+        outputs, _, _ = decoder_instance(decoder_embedding_matrix, start_tokens = start_tokens, end_token = end_token, initial_state=decoder_initial_state)
         
         return outputs.sample_id.numpy()
     
