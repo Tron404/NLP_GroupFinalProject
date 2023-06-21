@@ -8,7 +8,7 @@ class Encoder(tf.keras.Model):
     super(Encoder, self).__init__()
     self.batch_sz = batch_sz
     self.enc_units = enc_units
-    self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim, weights=[embeddings])
+    self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim, weights=[embeddings], trainable=False)
 
     ##-------- LSTM layer in Encoder ------- ##
     self.lstm_layers = []
@@ -52,7 +52,7 @@ class Decoder(tf.keras.Model):
     self.embeddings = embeddings
 
     # Embedding Layer
-    self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim, weights = [self.embeddings])
+    self.embedding = tf.keras.layers.Embedding(vocab_size, embedding_dim, weights = [self.embeddings], trainable=False)
 
     # Define the fundamental cell for decoder recurrent structure
     self.decoder_rnn_cell = tf.keras.layers.LSTMCell(self.dec_units)

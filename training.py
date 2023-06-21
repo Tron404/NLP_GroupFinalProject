@@ -16,7 +16,7 @@ class LSTM_custom(tf.keras.Model):
         self.max_length_input = max_length_input
         self.dataset_creator = dataset_creator
 
-        initial_learning_rate = 1e-4
+        initial_learning_rate = 1e-3
         lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
             initial_learning_rate,
             decay_steps=100000,
@@ -141,7 +141,7 @@ class LSTM_custom(tf.keras.Model):
             print('Time taken for 1 epoch {} sec\n'.format(time.time() - start))
         
         pickle.dump(np.asarray(self.history), open("training_history", "wb"))
-        self.save_weights("test.h5")
+        self.save_weights("weights.h5")
 
     def get_training_history(self):
         return np.asarray(self.history)
@@ -158,11 +158,12 @@ class LSTM_custom(tf.keras.Model):
         start_tokens = tf.fill([inference_batch_size], targ_lang.word_index['<sos>'])
         end_token = targ_lang.word_index['<eos>']
 
-        greedy_sampler = tfa.seq2seq.GreedyEmbeddingSampler()
+        # greedy_sampler = tfa.seq2seq.GreedyEmbeddingSampler()
+        greedy_sampler = tfa.seq2seq.SampleEmbeddingSampler(self.decoder.embedding)
 
         # Instantiate BasicDecoder object
         # DO NOT REMOVE MAXIMUM ITERATIONS!!! - the decoder will get stuck in an infinite loop otherwise
-        decoder_instance = tfa.seq2seq.BasicDecoder(cell=self.decoder.rnn_cell, sampler=greedy_sampler, output_layer=self.decoder.fc, maximum_iterations=10) # change sampler from training to greedy to extract result from embedding
+        decoder_instance = tfa.seq2seq.BasicDecoder(cell=self.decoder.rnn_cell, sampler=greedy_sampler, output_layer=self.decoder.fc) # change sampler from training to greedy to extract result from embedding
         # # Setup Memory in decoder stack
         self.decoder.attention_mechanism.setup_memory(enc_out)
 

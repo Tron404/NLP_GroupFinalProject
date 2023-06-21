@@ -10,7 +10,7 @@ import nltk
 
 BUFFER_SIZE = 3300
 BATCH_SIZE = 2
-num_examples = 10
+num_examples = 1000
 
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -37,17 +37,17 @@ max_length_output = example_target_batch.shape[1]
 print(example_input_batch.shape, example_target_batch.shape)
 
 embedding_dim = 50
-units = 100
+units = 50
 steps_per_epoch = num_examples//BATCH_SIZE
 
-encoder = Encoder(vocab_inp_size, embedding_dim, units, BATCH_SIZE, embedding_matrix_input, num_layers=2)
+encoder = Encoder(vocab_inp_size, embedding_dim, units, BATCH_SIZE, embedding_matrix_input, num_layers=7)
 decoder = Decoder(vocab_tar_size, embedding_dim, units, BATCH_SIZE, max_length_input, max_length_output, embedding_matrix_target)
 
 lstm_model = LSTM_custom(encoder, decoder, units, max_length_input, dataset_creator, BATCH_SIZE)
 
 TRAIN = True
 if TRAIN == True:
-    lstm_model.train(train_dataset, val_dataset, 5, steps_per_epoch, patience=5)
+    lstm_model.train(train_dataset, val_dataset, 10, steps_per_epoch, patience=5)
     hist = lstm_model.get_training_history()
 else:
     lstm_model.load_model("training_checkpoints")
