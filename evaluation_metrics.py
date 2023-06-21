@@ -4,6 +4,8 @@ from nltk.translate.meteor_score import meteor_score
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from nltk.tokenize import word_tokenize
 
+import numpy as np
+
 class Evaluator:
     def __init__(self, problem_condition, problem_solutions, model, targ_lang):
         self.problem_conditions = problem_condition   # List of problem conditions
@@ -46,7 +48,7 @@ class Evaluator:
             # Add the BLEU score to the list
             bleu_scores.append(bleu_score)
 
-        return bleu_scores
+        return np.mean(np.asarray(bleu_scores))
 
 
     # Method to calculate METEOR scores for the model's solutions
@@ -70,8 +72,8 @@ class Evaluator:
             meteor_scores.append(score)
         
         # Return the list of METEOR scores
-        return meteor_scores
-
+        # return meteor_scores
+        return np.mean(np.asarray(meteor_scores))
 
     # Method to calculate CodeBERT scores for the model's solutions
     def code_bert_scores(self, lang='python'):
@@ -80,7 +82,7 @@ class Evaluator:
         predicted_solutions = self.generate_translations()  # Generate model's solutions
         predicted_solutions = [' '.join(solution) for solution in predicted_solutions]
         
-        print(f"For the problems: {self.problem_conditions}\n We got the predicted solutions: {predicted_solutions}")
+        # print(f"For the problems: {self.problem_conditions}\n We got the predicted solutions: {predicted_solutions}")
 
         # Open a pre-calculated idf dictionary file
         with open(idf_dict_path, 'rb') as f:
@@ -89,5 +91,5 @@ class Evaluator:
             # Calculate CodeBERT scores for the correct solutions and model's solutions
             pred_results = code_bert_score.score(cands=predicted_solutions, refs=self.problem_solutions, no_punc=True, lang=lang, idf=idf_dict)
 
-            return pred_results
+            return pred_results[0].mean()
 
