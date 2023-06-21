@@ -4,7 +4,7 @@ import tensorflow_addons as tfa
 # import keras_nlp
 
 class Encoder(tf.keras.Model):
-  def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz, embeddings, num_layers = 7):
+  def __init__(self, vocab_size, embedding_dim, enc_units, batch_sz, embeddings, num_layers = 1):
     super(Encoder, self).__init__()
     self.batch_sz = batch_sz
     self.enc_units = enc_units
@@ -18,8 +18,8 @@ class Encoder(tf.keras.Model):
                                    return_state=True,
                                    recurrent_initializer='glorot_uniform',
                                    name=f"LSTM{idx}",
-                                   dropout=0.1,
-                                   recurrent_regularizer="l1"
+                                   dropout=0.1
+                                  #  recurrent_regularizer="l1"
                                    )
                                 )
       

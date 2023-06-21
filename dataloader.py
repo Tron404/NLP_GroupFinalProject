@@ -65,7 +65,7 @@ class Dataset:
         return tokenized_code
     
     def add_sos_eos(self, tokens):
-        tokens = [' <sos>'] + tokens + ['<eos> ']
+        tokens = ['<sos>'] + tokens + ['<eos>']
         return tokens
     
     def process_dataset(self, df):
@@ -132,13 +132,17 @@ class Dataset:
         text = self.preprocess_problem_data(text)
         text = self.add_sos_eos(text)
 
+        print(f"Processed sentence: {text}")
+
         inputs = [self.inp_lang_tokenizer.word_index[i] if i in self.inp_lang_tokenizer.word_index else self.inp_lang_tokenizer.word_index["<oov>"] for i in text]
+        print(inputs)
+        print(self.inp_lang_tokenizer.word_index["<sos>"], self.inp_lang_tokenizer.word_index["<eos>"], self.inp_lang_tokenizer.word_index["<oov>"])
         inputs = tf.keras.preprocessing.sequence.pad_sequences([inputs], maxlen=self.max_length_input, padding='post')
 
         return inputs
     
     def build_embedding_matrix(self, tokenizer):
-        matrix = np.random.rand(len(tokenizer.get_config()["word_counts"]) + 3, self.DIM) # +1 for unknown words
+        matrix = np.random.rand(len(tokenizer.get_config()["word_counts"]) + 1, self.DIM) # +1 for unknown words
         
         for token, i in tokenizer.word_index.items():
             if token in self.embedding_model.keys():
@@ -174,5 +178,7 @@ class Dataset:
         self.max_length_input = example_input_batch.shape[1]
         self.max_length_output = example_target_batch.shape[1]
 
+        self.vocab_input_size = len(self.inp_lang_tokenizer.get_config()["word_counts"]) + 1 # for <oov>
+        self.vocab_target_size = len(self.targ_lang_tokenizer.get_config()["word_counts"]) + 1 # +3 for <eos>, <sos>, <oov>
 
         return train_dataset, val_dataset, test_dataset, self.inp_lang_tokenizer, self.targ_lang_tokenizer 

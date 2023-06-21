@@ -91,15 +91,11 @@ class LSTM_custom(tf.keras.Model):
         minimum_epoch_loss = np.inf
         patient_round = 0
 
-        #@TODO: break sequence into sub sequences if they are too long?
-
         for epoch in range(EPOCHS):
             start = time.time()
 
             enc_hidden = self.encoder.initialize_hidden_state()
-            # print(enc_hidden[0].shape, enc_hidden[1].shape)
 
-            """@TODO: maybe shuffle data before each batch computation """
             train_dataset = train_dataset.shuffle(steps_per_epoch)
             train_batch_data = train_dataset.take(steps_per_epoch)
             input_progressBar = tqdm(enumerate(train_batch_data))
@@ -124,8 +120,8 @@ class LSTM_custom(tf.keras.Model):
 
                 val_progressBar.set_description(f"Epoch: {epoch+1} === Val loss: {total_val_loss/(batch+1):.3f} === Batch: {batch+1}/{len(val_batch_data)}")
 
-            loss = total_loss / len(train_batch_data)
-            loss_val = total_val_loss / len(val_batch_data)
+            loss = total_loss / steps_per_epoch
+            loss_val = total_val_loss / steps_per_epoch
 
             self.history.append([loss, loss_val])
             self.checkpoint_manager.save() # save the last 3 checkpoints
@@ -165,18 +161,15 @@ class LSTM_custom(tf.keras.Model):
         greedy_sampler = tfa.seq2seq.GreedyEmbeddingSampler()
 
         # Instantiate BasicDecoder object
-        decoder_instance = tfa.seq2seq.BasicDecoder(cell=self.decoder.rnn_cell, sampler=greedy_sampler, output_layer=self.decoder.fc) # change sampler from training to greedy to extract result from embedding
+        # DO NOT REMOVE MAXIMUM ITERATIONS!!! - the decoder will get stuck in an infinite loop otherwise
+        decoder_instance = tfa.seq2seq.BasicDecoder(cell=self.decoder.rnn_cell, sampler=greedy_sampler, output_layer=self.decoder.fc, maximum_iterations=10) # change sampler from training to greedy to extract result from embedding
         # # Setup Memory in decoder stack
         self.decoder.attention_mechanism.setup_memory(enc_out)
 
         # # set decoder_initial_state
         decoder_initial_state = self.decoder.build_initial_state(inference_batch_size, [enc_h, enc_c], tf.float32)
 
-        # ### Since the BasicDecoder wraps around Decoder's rnn cell only, you have to ensure that the inputs to BasicDecoder 
-        # ### decoding step is output of embedding layer. tfa.seq2seq.GreedyEmbeddingSampler() takes care of this. 
-        # ### You only need to get the weights of embedding layer, which can be done by decoder.embedding.variables[0] and pass this callabble to BasicDecoder's call() function
-
-        decoder_embedding_matrix = self.decoder.embedding.variables[0] if len(self.decoder.embedding.variables) > 0 else self.decoder.embedding.variables 
+        decoder_embedding_matrix = self.decoder.embedding.variables[0]
 
         outputs, _, _ = decoder_instance(decoder_embedding_matrix, start_tokens = start_tokens, end_token = end_token, initial_state=decoder_initial_state)
         
